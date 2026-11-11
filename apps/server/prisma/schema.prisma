@@ -1,0 +1,55 @@
+// Banco do Truco na Mesa 3D. Para usar PostgreSQL, troque o provider e a DATABASE_URL.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  name         String        @unique
+  passwordHash String
+  avatar       String        @default("{}")
+  xp           Int           @default(0)
+  createdAt    DateTime      @default(now())
+  stats        ModeStat[]
+  achievements Achievement[]
+}
+
+model ModeStat {
+  id     Int    @id @default(autoincrement())
+  userId Int
+  mode   String
+  games  Int    @default(0)
+  wins   Int    @default(0)
+  elo    Int    @default(1000)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, mode])
+}
+
+model Achievement {
+  id     Int      @id @default(autoincrement())
+  userId Int
+  key    String
+  at     DateTime @default(now())
+  user   User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, key])
+}
+
+model Match {
+  id        Int      @id @default(autoincrement())
+  mode      String
+  format    String
+  seed      Int
+  winner    Int
+  score     String
+  /// Configuração, jogadores e lista de ações: com a seed, permite rever a partida.
+  replay    String
+  createdAt DateTime @default(now())
+}
