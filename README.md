@@ -131,6 +131,12 @@ e a `DATABASE_URL`. As salas ficam na memória do servidor, então use uma únic
 
 ## Poker 3D (Texas Hold'em)
 
-`poker-3d.html` é um jogo à parte, em um único arquivo: abra direto no navegador (precisa de internet só para
-carregar o Three.js). Você joga Texas Hold'em em primeira pessoa contra 1 a 4 bots, com um juiz 3D que embaralha, distribui e anuncia
-as jogadas, fichas por valor, potes paralelos, blinds que dobram a cada 10 mãos e sons feitos com Web Audio.
+`poker-3d.html` é um jogo à parte, em um único arquivo: abra direto no navegador (precisa de internet para
+carregar o Three.js). Você joga Texas Hold'em em primeira pessoa, segurando as cartas na mão, com um juiz 3D que
+embaralha, distribui e anuncia as jogadas, fichas por valor, potes paralelos, blinds que dobram a cada 10 mãos e
+sons feitos com Web Audio.
+
+Dá para jogar sozinho contra 1 a 4 bots ou on-line com até 5 pessoas: uma cria a sala e passa o código (ou o link
+com `#sala-CODIGO`) para as outras, e bots completam a mesa se quiser. O navegador de quem cria a sala roda a
+partida e as jogadas vão direto de um navegador para o outro (PeerJS/WebRTC), sem servidor próprio. Se quem criou
+a sala fechar a página, a partida termina.

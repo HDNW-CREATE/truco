@@ -45,7 +45,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
 #vinheta { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0, 0, 0, .62) 100%); }
 
 /* ---------- Rótulos projetados sobre a cena ---------- */
-#rotulos { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+#rotulos { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .rotulo {
   position: absolute; left: 0; top: 0; transform: translate(-50%, -100%);
   padding: 4px 10px 5px; border-radius: 10px; text-align: center; white-space: nowrap;
@@ -88,7 +88,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
 #topo {
   position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 8px;
   padding: calc(8px + env(safe-area-inset-top, 0px)) var(--lado-d) 8px var(--lado-e);
-  background: linear-gradient(rgba(0, 0, 0, .6), transparent); pointer-events: none;
+  background: linear-gradient(rgba(0, 0, 0, .6), transparent); pointer-events: none; z-index: 2;
 }
 #topo > * { pointer-events: auto; }
 #info-mao { font-weight: 700; margin-right: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -104,7 +104,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
 #hud-centro {
   display: none; position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
   flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
-  padding: 8px 14px 10px; border-radius: 14px; background: var(--painel); border: 1px solid var(--filete);
+  padding: 8px 14px 10px; border-radius: 14px; background: var(--painel); border: 1px solid var(--filete); z-index: 2;
 }
 #hud-pote { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--apagado); white-space: nowrap; }
 #hud-pote b { font-size: 20px; letter-spacing: 0; color: var(--latao); margin-left: 6px; font-variant-numeric: tabular-nums; }
@@ -138,7 +138,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
   display: grid; grid-template-columns: auto 1fr; grid-template-areas: "mao atalhos" "mao slider" "mao botoes";
   gap: 8px 14px; align-items: center;
   padding: 10px var(--lado-d) calc(10px + env(safe-area-inset-bottom, 0px)) var(--lado-e);
-  background: var(--painel); border: 1px solid var(--filete); border-bottom: 0; border-radius: 16px 16px 0 0;
+  background: var(--painel); border: 1px solid var(--filete); border-bottom: 0; border-radius: 16px 16px 0 0; z-index: 2;
 }
 #minha-mao { grid-area: mao; display: flex; align-items: center; gap: 10px; min-width: 0; }
 #minhas-cartas { display: flex; gap: 5px; }
@@ -189,13 +189,32 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
 .cartao p { margin: 0; line-height: 1.45; color: var(--apagado); text-align: center; }
 .campo { display: flex; flex-direction: column; gap: 6px; }
 .campo label, .campo .legenda { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--apagado); font-weight: 600; }
+#campo-sala { text-transform: uppercase; letter-spacing: .18em; }
 .campo input[type="text"] {
   height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--filete);
   background: rgba(0, 0, 0, .35); font-size: 17px; font-weight: 600; -webkit-user-select: text; user-select: text;
 }
-#escolha-bots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-#escolha-bots button { height: 48px; border-radius: 10px; border: 1px solid var(--filete); background: rgba(0, 0, 0, .35); font-size: 18px; font-weight: 700; }
-#escolha-bots button[aria-pressed="true"] { background: var(--latao); color: var(--tinta); border-color: var(--latao); }
+#escolha-bots, #escolha-bots-sala, #abas-modo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#escolha-bots-sala { grid-template-columns: repeat(5, 1fr); }
+#abas-modo { grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--filete); border-radius: 10px; overflow: hidden; }
+#escolha-bots button, #escolha-bots-sala button { height: 48px; border-radius: 10px; border: 1px solid var(--filete); background: rgba(0, 0, 0, .35); font-size: 18px; font-weight: 700; }
+#abas-modo button { min-height: 44px; padding: 0 4px; border: 0; background: rgba(0, 0, 0, .35); font-size: 14px; font-weight: 600; }
+#abas-modo button + button { border-left: 1px solid var(--filete); }
+#escolha-bots button[aria-pressed="true"], #escolha-bots-sala button[aria-pressed="true"], #abas-modo button[aria-pressed="true"] { background: var(--latao); color: var(--tinta); border-color: var(--latao); }
+#escolha-bots-sala button:disabled { opacity: .3; cursor: default; }
+#codigo-sala {
+  font-family: var(--fonte-ui); font-weight: 700; font-size: 44px; letter-spacing: .22em; text-indent: .22em; text-align: center;
+  padding: 10px 8px; border-radius: 12px; background: rgba(0, 0, 0, .4); border: 1px dashed var(--latao);
+  color: var(--marfim); -webkit-user-select: all; user-select: all;
+}
+#lista-sala { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+#lista-sala li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(0, 0, 0, .28); }
+#lista-sala li b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#lista-sala li span { font-size: 12px; color: var(--apagado); white-space: nowrap; }
+#aviso-sala { font-size: 13px; min-height: 1.4em; }
+.btn-secundario { min-height: 46px; border-radius: 12px; border: 1px solid var(--filete); background: transparent; font-size: 15px; font-weight: 600; }
+.btn-secundario:hover { border-color: var(--latao); }
+.btn-principal:disabled { opacity: .4; cursor: default; }
 #resumo-bots { font-size: 13px; min-height: 2.9em; }
 .btn-principal {
   min-height: 54px; border-radius: 12px; border: 0; background: var(--latao); color: var(--tinta);
@@ -235,7 +254,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
   #meu-info { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
   #minhas-fichas { font-size: 16px; }
   .acao { min-height: 54px; font-size: 15px; }
-  #historico { width: 150px; max-height: 66px; top: auto; bottom: calc(var(--altura-barra, 230px) + 8px); padding: 6px 8px; }
+  /* No celular o histórico vira uma faixa com as duas últimas jogadas, logo acima da barra. */
+  #historico { left: 0; right: 0; width: auto; max-height: 40px; top: auto; bottom: var(--altura-barra, 230px); padding: 4px var(--lado-d) 4px var(--lado-e); border-radius: 0; border-left: 0; border-right: 0; opacity: 1; }
   #lista-historico { font-size: 11px; }
 }
 @media (max-width: 720px) {
@@ -329,11 +349,20 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
 <div id="tela-inicial" class="tela">
   <form class="cartao" id="form-inicio" autocomplete="off">
     <h1>Poker 3D<small>Texas Hold'em</small></h1>
+    <div id="abas-modo">
+      <button type="button" data-modo="solo" aria-pressed="true">Sozinho</button>
+      <button type="button" data-modo="criar" aria-pressed="false">Criar sala</button>
+      <button type="button" data-modo="entrar" aria-pressed="false">Entrar em sala</button>
+    </div>
     <div class="campo">
       <label for="campo-nome">Seu nome</label>
       <input id="campo-nome" type="text" maxlength="14" value="Você" placeholder="Digite seu nome">
     </div>
-    <div class="campo">
+    <div class="campo oculto" id="campo-codigo">
+      <label for="campo-sala">Código da sala</label>
+      <input id="campo-sala" type="text" maxlength="8" placeholder="Ex.: K7M2P" autocapitalize="characters" spellcheck="false">
+    </div>
+    <div class="campo" id="campo-bots">
       <span class="legenda">Adversários (bots)</span>
       <div id="escolha-bots">
         <button type="button" data-bots="1" aria-pressed="false">1</button>
@@ -346,6 +375,30 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
     <p id="aviso-erro" class="oculto"></p>
     <button class="btn-principal" id="btn-comecar" type="submit">Sentar à mesa</button>
   </form>
+</div>
+
+<!-- Sala de espera (jogo on-line) -->
+<div id="tela-sala" class="tela oculto">
+  <div class="cartao">
+    <h1>Sala on-line<small>Código da sala</small></h1>
+    <div id="codigo-sala" translate="no"></div>
+    <button class="btn-secundario" id="btn-copiar" type="button">Copiar código</button>
+    <p id="texto-sala"></p>
+    <ul id="lista-sala"></ul>
+    <div class="campo" id="campo-bots-sala">
+      <span class="legenda">Bots para completar a mesa</span>
+      <div id="escolha-bots-sala">
+        <button type="button" data-bots="0" aria-pressed="true">0</button>
+        <button type="button" data-bots="1" aria-pressed="false">1</button>
+        <button type="button" data-bots="2" aria-pressed="false">2</button>
+        <button type="button" data-bots="3" aria-pressed="false">3</button>
+        <button type="button" data-bots="4" aria-pressed="false">4</button>
+      </div>
+    </div>
+    <p id="aviso-sala"></p>
+    <button class="btn-principal" id="btn-iniciar-sala" type="button">Começar partida</button>
+    <button class="btn-secundario" id="btn-sair-sala" type="button">Sair da sala</button>
+  </div>
 </div>
 
 <!-- Painel de regras -->
@@ -362,6 +415,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
       <li>Empate divide o pote. Quem vai all-in só disputa o que conseguiu cobrir; o resto vira pote paralelo.</li>
       <li>Quem fica sem fichas é eliminado. O último com fichas vence.</li>
       <li>Você vê a mesa em primeira pessoa. Arraste para olhar em volta e use a roda do mouse ou dois dedos para aproximar.</li>
+      <li>On-line: quem cria a sala passa o código aos amigos. Cada um tem 45 segundos para jogar; se o tempo acabar, passa ou desiste.</li>
     </ul>
     <h2>Valor das fichas</h2>
     <div id="legenda-fichas"></div>
@@ -375,6 +429,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); out
     <h1 id="titulo-fim">Game Over</h1>
     <p id="texto-fim"></p>
     <button class="btn-principal" id="btn-de-novo" type="button">Jogar de novo</button>
+    <button class="btn-secundario oculto" id="btn-sair-fim" type="button">Sair da sala</button>
   </div>
 </div>
 
@@ -391,6 +446,8 @@ const CONFIG = { fichasIniciais: 1000, smallBlind: 10, maosPorNivel: 10 };
 // Opções de depuração pela URL: ?auto faz o humano jogar sozinho, ?vel=4 acelera, ?bots=4 inicia direto.
 const PARAMS = new URLSearchParams(location.search);
 const MODO_AUTO = PARAMS.has('auto');
+if (Number(PARAMS.get('fichas')) > 0) CONFIG.fichasIniciais = Math.round(Number(PARAMS.get('fichas')) / 5) * 5;   // testes: partidas curtas
+// On-line (testes): ?criar=codigo&rede=local&iniciar=2 abre uma sala e começa com 2 convidados; ?entrar=codigo&rede=local entra nela.
 
 const NAIPES = ['espadas', 'copas', 'ouros', 'paus'];
 const NOME_VALOR = { 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
@@ -426,10 +483,9 @@ const CARTA = { l: 0.36, a: 0.5, e: 0.006 };   // largura, altura, espessura
 const FICHA = { r: 0.07, h: 0.021 };
 const CHAO = -1.6;
 const ESCALA_AVATAR = 1.4;
-const INCLINACAO_HUMANO = 1.0;                 // as cartas do humano ficam em pé, viradas para os olhos dele
 const INCLINACAO_MESA = 0.6;                   // cartas abertas na mesa ficam inclinadas para serem lidas do assento
 // Ângulos dos assentos dos bots. O humano fica em 90° (onde está a câmera) e o juiz em 270°, de frente para ele.
-// Os bots ficam todos do lado de lá da mesa, dentro do campo de visão.
+// Os outros jogadores ficam todos do lado de lá da mesa, dentro do campo de visão.
 const ANGULOS_BOTS = { 1: [236], 2: [228, 312], 3: [200, 236, 312], 4: [200, 236, 304, 340] };
 
 /* =====================================================================
@@ -538,6 +594,12 @@ function novoBaralho() {
   return b;
 }
 const carta = (valor, naipe) => BARALHO_BASE[naipe * 13 + valor - 2];
+// Numa partida on-line, quem não é o anfitrião não conhece as cartas fechadas dos outros: elas são "ocultas" (valor 0).
+const CARTA_POR_ID = {};
+for (const c of BARALHO_BASE) CARTA_POR_ID[c.id] = c;
+let contadorOcultas = 0;
+const cartaOculta = () => ({ v: 0, n: 0, id: 'oculta-' + (++contadorOcultas) });
+const cartaPorId = id => CARTA_POR_ID[id] || cartaOculta();
 
 // A pontuação de 5 cartas vira um número: categoria e desempates em base 15. Maior vence.
 const BASE = 15;
@@ -908,8 +970,10 @@ function ajustarTela() {
   camera.setViewOffset(l, a + barra, 0, barra, l, a);
   // Em tela estreita (celular em pé) o campo de visão abre para caber mais da mesa.
   visao.fovBase = retrato ? 100 : 72;
-  visao.pitchPadrao = retrato ? -0.14 : -0.24;
+  visao.pitchPadrao = -0.24;
   aplicarZoom();
+  medirTopoLivre();
+  if (eu()) posicionarLeque(eu());              // as cartas na mão acompanham o formato da tela
 }
 function reiniciarCamera() { visao.yaw = 0; visao.yawAuto = 0; visao.pitch = visao.pitchPadrao; visao.zoom = 1; visao.seguir = true; aplicarZoom(); }
 const _mira = new THREE.Vector3();
@@ -922,7 +986,7 @@ function atualizarCamera(dt) {
 }
 // Vira o olhar só o necessário para o jogador da vez aparecer na tela.
 function olharPara(j) {
-  if (!j || j.humano) { visao.alvoAuto = 0; return; }
+  if (!j || j.local) { visao.alvoAuto = 0; return; }
   const ang = Math.atan2(visao.olho.x - j.geo.avatar.x, visao.olho.z - j.geo.avatar.z);
   const meio = Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect) * 0.7;
   visao.alvoAuto = Math.abs(ang) > meio ? Math.sign(ang) * (Math.abs(ang) - meio) : 0;
@@ -1016,8 +1080,8 @@ function prepararPecas() {
 }
 // Carta 3D. Rotação em ordem YXZ: z vira a carta (PI = fechada), x inclina, y gira sobre a mesa.
 function criarCarta3D(c) {
-  if (!texFaces[c.id]) texFaces[c.id] = texturaDeCanvas(canvasCarta(c));
-  const face = new THREE.MeshStandardMaterial({ map: texFaces[c.id], emissiveMap: texFaces[c.id], emissive: 0x000000, roughness: 0.5 });
+  const tex = c.v ? (texFaces[c.id] || (texFaces[c.id] = texturaDeCanvas(canvasCarta(c)))) : matVerso.map;   // carta oculta: verso dos dois lados
+  const face = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0x000000, roughness: 0.5 });
   const m = new THREE.Mesh(geoCarta, [matBordaCarta, matBordaCarta, face, matVerso, matBordaCarta, matBordaCarta]);
   m.rotation.order = 'YXZ';
   m.castShadow = true;
@@ -1031,8 +1095,17 @@ function criarCarta3D(c) {
   cena.add(m);
   return m;
 }
+// Uma carta oculta passa a mostrar a carta verdadeira (no showdown).
+function definirCarta(m, c) {
+  const u = m.userData;
+  delete malhaDaCarta[u.carta.id];
+  if (!texFaces[c.id]) texFaces[c.id] = texturaDeCanvas(canvasCarta(c));
+  u.carta = c; u.face.map = u.face.emissiveMap = texFaces[c.id]; u.face.needsUpdate = true;
+  malhaDaCarta[c.id] = m;
+}
 function removerCarta3D(m) {
-  cena.remove(m); brilhando.delete(m);
+  if (m.parent) m.parent.remove(m);
+  brilhando.delete(m);
   m.userData.face.dispose(); m.userData.brilho.material.dispose();
   delete malhaDaCarta[m.userData.carta.id];
 }
@@ -1089,6 +1162,7 @@ async function voarFichas(de, para, valor, arco = 0.42) {
   if (!lista.length) return;
   const voos = lista.map((d, i) => (async () => {
     const f = criarFicha3D(d);
+    f.userData.fichaSolta = true;
     f.position.set(de.x + aleatorio(-0.05, 0.05), FICHA.h * (i + 0.5), de.z + aleatorio(-0.05, 0.05));
     cena.add(f);
     await esperar(i * 40);
@@ -1101,10 +1175,10 @@ async function voarFichas(de, para, valor, arco = 0.42) {
 }
 
 /* =====================================================================
-   10. AVATARES DOS JOGADORES E O JUIZ (DEALER)
+   10. AVATARES, BRAÇOS ARTICULADOS E O JUIZ (DEALER)
    ===================================================================== */
 function posicionarMembro(m, a, b) {
-  const d = new THREE.Vector3().subVectors(b, a), comp = d.length();
+  const d = new THREE.Vector3().subVectors(b, a), comp = Math.max(0.001, d.length());
   m.position.copy(a).addScaledVector(d, 0.5);
   m.scale.set(1, comp, 1);
   m.quaternion.setFromUnitVectors(EIXO_Y, d.normalize());
@@ -1114,7 +1188,8 @@ function criarMembro(pai, a, b, raio, material) {
   m.castShadow = true; posicionarMembro(m, a, b); pai.add(m);
   return m;
 }
-// Avatar simples (bots e juiz): tronco, cabeça e um detalhe de estilo por personagem. A frente do avatar é +z.
+// Avatar simples (bots, outros jogadores e juiz): tronco, cabeça e um detalhe de estilo. A frente do avatar é +z.
+// Os braços são criados à parte (criarBracos), porque as mãos se mexem.
 function criarAvatar(o) {
   const g = new THREE.Group();
   const roupa = mat(o.roupa, 0.85), pele = mat(o.pele, 0.7), cabelo = mat(o.cabelo, 0.55), escuro = mat(0x17171c, 0.5);
@@ -1125,7 +1200,9 @@ function criarAvatar(o) {
   por(new THREE.SphereGeometry(0.2, 28, 20), pele, 0, 0.64, 0);
   for (const s of [-1, 1]) por(new THREE.SphereGeometry(0.024, 10, 8), escuro, s * 0.075, 0.67, 0.18);
   por(new THREE.SphereGeometry(0.028, 10, 8), pele, 0, 0.62, 0.198);
-  por(new THREE.SphereGeometry(0.208, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.52), cabelo, 0, 0.645, -0.005).rotation.x = -0.3;
+  if (o.estilo !== 'bone') {
+    por(new THREE.SphereGeometry(0.208, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.52), cabelo, 0, 0.645, -0.005).rotation.x = -0.3;
+  }
   if (o.estilo === 'coque') {                    // Bia: coque e óculos
     por(new THREE.SphereGeometry(0.085, 14, 10), cabelo, 0, 0.87, -0.09);
     for (const s of [-1, 1]) por(new THREE.TorusGeometry(0.042, 0.008, 6, 18), escuro, s * 0.075, 0.67, 0.19);
@@ -1142,6 +1219,10 @@ function criarAvatar(o) {
     por(new THREE.BoxGeometry(0.27, 0.06, 0.03), mat(0x08080a, 0.15, 0.6), 0, 0.672, 0.182);
   } else if (o.estilo === 'longo') {             // Lia: cabelo comprido
     por(new THREE.SphereGeometry(0.2, 18, 14), cabelo, 0, 0.52, -0.1).scale.set(1.08, 1.45, 0.75);
+  } else if (o.estilo === 'bone') {              // jogadores humanos (on-line): boné da cor da roupa
+    por(new THREE.SphereGeometry(0.21, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), roupa, 0, 0.66, 0).rotation.x = -0.12;
+    por(new THREE.BoxGeometry(0.24, 0.02, 0.17), roupa, 0, 0.7, 0.24).rotation.x = 0.12;
+    por(new THREE.SphereGeometry(0.203, 20, 12, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.25), cabelo, 0, 0.64, -0.01);
   } else if (o.estilo === 'juiz') {              // juiz: colete, gravata borboleta e bigode
     const colete = new THREE.Mesh(new THREE.CylinderGeometry(0.245, 0.315, 0.8, 24, 1, true, 0.42, Math.PI * 2 - 0.84),
       new THREE.MeshStandardMaterial({ color: 0x131318, roughness: 0.6, side: THREE.DoubleSide }));
@@ -1151,13 +1232,9 @@ function criarAvatar(o) {
     for (let i = 0; i < 3; i++) por(new THREE.SphereGeometry(0.016, 8, 6), mat(0xe0b663, 0.3, 0.7), 0, 0.22 - i * 0.14, 0.262 + i * 0.012);
   }
   if (o.sentado) {
-    // Braços apoiados na borda, cadeira e pernas.
+    // Cadeira e pernas.
+    const calca = mat(0x23252e, 0.9);
     for (const s of [-1, 1]) {
-      const ombro = V3(s * 0.31, 0.27, 0.02), cotovelo = V3(s * 0.41, 0.02, 0.2), mao = V3(s * 0.2, 0.16, 0.5);
-      criarMembro(g, ombro, cotovelo, 0.072, roupa); criarMembro(g, cotovelo, mao, 0.06, roupa);
-      por(new THREE.SphereGeometry(0.072, 10, 8), roupa, cotovelo.x, cotovelo.y, cotovelo.z);
-      por(new THREE.SphereGeometry(0.068, 12, 10), pele, mao.x, mao.y, mao.z);
-      const calca = mat(0x23252e, 0.9);
       criarMembro(g, V3(s * 0.13, -0.5, 0), V3(s * 0.13, -0.5, 0.42), 0.088, calca);
       criarMembro(g, V3(s * 0.13, -0.5, 0.42), V3(s * 0.13, -1.1, 0.44), 0.075, calca);
       por(new THREE.BoxGeometry(0.13, 0.07, 0.24), escuro, s * 0.13, -1.11, 0.5);
@@ -1175,8 +1252,46 @@ function criarAvatar(o) {
   return g;
 }
 
-// O juiz fica em pé no centro do lado oposto ao humano. Os braços seguem as mãos, que são animadas.
-const dealer = { grupo: null, maos: {}, olharPara: 0, baralho: null, metades: [] };
+// Braços articulados: o ombro fica preso ao avatar e a mão é um ponto no mundo que as animações movem.
+// O braço e o antebraço são reposicionados a cada quadro para ligar ombro, cotovelo e mão.
+function criarBracos(grupo, corManga, corPele, queda) {
+  const manga = mat(corManga, 0.85), pele = mat(corPele, 0.7), r = { grupo, queda };
+  for (const lado of ['E', 'D']) {
+    const s = lado === 'E' ? -1 : 1;
+    const mao = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 10), pele); mao.castShadow = true; cena.add(mao);
+    const cotovelo = new THREE.Mesh(new THREE.SphereGeometry(0.098, 10, 8), manga); cena.add(cotovelo);
+    const braco = criarMembro(cena, V3(0, 0, 0), V3(0, 1, 0), 0.1, manga);
+    const antebraco = criarMembro(cena, V3(0, 0, 0), V3(0, 1, 0), 0.085, manga);
+    r[lado] = { s, pos: V3(0, 0, 0), repouso: V3(0, 0, 0), mao, cotovelo, braco, antebraco, ombroLocal: V3(s * 0.31, 0.27, 0.02) };
+  }
+  return r;
+}
+const _ombro = new THREE.Vector3(), _cot = new THREE.Vector3(), _lateral = new THREE.Vector3();
+function atualizarBracos(r) {
+  const g = r.grupo;
+  g.updateMatrixWorld();
+  _lateral.setFromMatrixColumn(g.matrixWorld, 0).normalize();
+  for (const lado of ['E', 'D']) {
+    const m = r[lado];
+    _ombro.copy(m.ombroLocal); g.localToWorld(_ombro);
+    m.mao.position.copy(m.pos);
+    _cot.lerpVectors(_ombro, m.pos, 0.5).addScaledVector(_lateral, m.s * 0.17); _cot.y -= r.queda;
+    m.cotovelo.position.copy(_cot);
+    posicionarMembro(m.braco, _ombro, _cot);
+    posicionarMembro(m.antebraco, _cot, m.pos);
+  }
+}
+function removerBracos(r) {
+  for (const lado of ['E', 'D']) { const m = r[lado]; cena.remove(m.mao, m.cotovelo, m.braco, m.antebraco); }
+}
+// Leva um ponto (a mão de alguém) até o alvo.
+function moverPonto(pos, alvo, dur) {
+  const p0 = pos.clone();
+  return animar(dur, k => pos.lerpVectors(p0, alvo, k), saida);
+}
+
+// O juiz fica em pé no centro do lado oposto ao jogador.
+const dealer = { grupo: null, maos: null, olharPara: 0, baralho: null, metades: [] };
 function criarDealer() {
   const altura = 0.44;
   const g = criarAvatar({ roupa: 0xf1efe8, pele: 0xe6b98f, cabelo: 0x2b1d14, estilo: 'juiz', sentado: false, altura });
@@ -1184,16 +1299,8 @@ function criarDealer() {
   g.rotation.x = 0.1;
   cena.add(g);
   dealer.grupo = g;
-  const manga = mat(0xf1efe8, 0.85), pele = mat(0xe6b98f, 0.7);
-  for (const lado of ['E', 'D']) {
-    const s = lado === 'E' ? -1 : 1;
-    const repouso = V3(s * 0.5, 0.17, -1.86);
-    const mao = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 10), pele); mao.castShadow = true; cena.add(mao);
-    const cotovelo = new THREE.Mesh(new THREE.SphereGeometry(0.098, 10, 8), manga); cena.add(cotovelo);
-    const braco = criarMembro(cena, V3(0, 0, 0), V3(0, 1, 0), 0.1, manga);
-    const antebraco = criarMembro(cena, V3(0, 0, 0), V3(0, 1, 0), 0.085, manga);
-    dealer.maos[lado] = { s, pos: repouso.clone(), repouso, mao, cotovelo, braco, antebraco, ombroLocal: V3(s * 0.31, 0.27, 0.02) };
-  }
+  dealer.maos = criarBracos(g, 0xf1efe8, 0xe6b98f, 0.1);
+  for (const lado of ['E', 'D']) { const m = dealer.maos[lado]; m.repouso.set(m.s * 0.5, 0.17, -1.86); m.pos.copy(m.repouso); }
   // Baralho sobre a mesa e as duas metades usadas na animação de embaralhar.
   const matBaralho = [matBordaCarta, matBordaCarta, matVerso, matVerso, matBordaCarta, matBordaCarta];
   dealer.baralho = new THREE.Mesh(new THREE.BoxGeometry(CARTA.l, 0.09, CARTA.a), matBaralho);
@@ -1203,22 +1310,12 @@ function criarDealer() {
     m.visible = false; m.castShadow = true; cena.add(m); dealer.metades.push(m);
   }
 }
-const _ombro = new THREE.Vector3(), _cot = new THREE.Vector3();
 function atualizarDealer(t, dt) {
   const g = dealer.grupo;
   // Respira e vira o corpo devagar na direção de quem está jogando.
   g.rotation.y += (dealer.olharPara - g.rotation.y) * Math.min(1, dt * 4);
   g.position.y = 0.44 + Math.sin(t * 1.6) * 0.008;
-  g.updateMatrixWorld();
-  for (const lado of ['E', 'D']) {
-    const m = dealer.maos[lado];
-    _ombro.copy(m.ombroLocal); g.localToWorld(_ombro);
-    m.mao.position.copy(m.pos);
-    _cot.lerpVectors(_ombro, m.pos, 0.5); _cot.x += m.s * 0.17; _cot.y -= 0.1;
-    m.cotovelo.position.copy(_cot);
-    posicionarMembro(m.braco, _ombro, _cot);
-    posicionarMembro(m.antebraco, _cot, m.pos);
-  }
+  atualizarBracos(dealer.maos);
 }
 // Leva a mão do juiz até perto do alvo (limitada ao alcance do braço).
 function moverMao(lado, alvo, dur) {
@@ -1226,14 +1323,20 @@ function moverMao(lado, alvo, dur) {
   const destino = alvo.clone(); destino.y = Math.max(destino.y, 0.14);
   const d = new THREE.Vector3().subVectors(destino, ombro);
   if (d.length() > 1.75) destino.copy(ombro).addScaledVector(d.normalize(), 1.75);
-  const p0 = m.pos.clone();
-  return animar(dur, k => m.pos.lerpVectors(p0, destino, k), saida);
+  return moverPonto(m.pos, destino, dur);
 }
 async function gestoMao(lado, alvo, ida = 150, volta = 260) {
   await moverMao(lado, alvo, ida);
   await moverMao(lado, dealer.maos[lado].repouso, volta);
 }
 function dealerOlhar(pos) { dealer.olharPara = pos ? Math.atan2(pos.x - dealer.grupo.position.x, pos.z - dealer.grupo.position.z) * 0.6 : 0; }
+// Põe o juiz e o baralho de volta na posição inicial (usado ao sair de uma partida no meio).
+function reporDealer() {
+  for (const lado of ['E', 'D']) dealer.maos[lado].pos.copy(dealer.maos[lado].repouso);
+  dealer.baralho.visible = true; dealer.baralho.position.copy(POS.baralho);
+  dealer.metades.forEach(m => { m.visible = false; });
+  dealer.olharPara = 0;
+}
 
 // Animação de embaralhar: o baralho se divide em duas metades que se entrelaçam três vezes.
 async function animarEmbaralhar() {
@@ -1258,48 +1361,68 @@ async function animarEmbaralhar() {
 }
 
 /* =====================================================================
-   11. ESTADO DO JOGO E JOGADORES
+   11. ESTADO DO JOGO, JOGADORES E CARTAS NA MÃO
    ===================================================================== */
 const jogo = {
   jogadores: [], botao: -1, baralho: [], mesa: [], malhasMesa: [],
   pote: 0, apostaAtual: 0, aumentoMinimo: 0, numeroMao: 0, nivel: 0, sb: 10, bb: 20,
-  vez: null, ativo: false, potesInfo: [], sbIdx: -1, bbIdx: -1,
+  vez: null, ativo: false, potesInfo: [], sbIdx: -1, bbIdx: -1, numAcoes: 0,
 };
+// Rede: 'solo' (contra bots), 'anfitriao' (dono da sala, roda o jogo) ou 'convidado' (recebe as jogadas do anfitrião).
+const rede = {
+  modo: 'solo', transporte: null, codigo: '', meuId: null, anfitriaoId: null, nome: '',
+  convidados: [], bots: 0, emJogo: false, registro: [], base: 0, esperandoAcao: null,
+  fila: [], proxima: 0, foraDeOrdem: {}, esperaEntrada: null, naSala: false, ultimoSinal: 0, ultimoPedido: 0,
+  temporizadores: [], reenvio: null,
+};
+let meuIndice = 0;                               // assento do jogador desta tela
+const eu = () => jogo.jogadores[meuIndice];
 let fichaBotao, anelVez, grupoPote;
-const posLivre = V3(0, 0, 0);
 
 // Pontos de referência de um assento, a partir do ângulo em volta da mesa.
-function geometriaAssento(grau, humano) {
+function geometriaAssento(grau, local) {
   const t = grau * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
   const ponto = (ra, rb) => V3(ra * c, 0, rb * s);
   const direita = V3(s, 0, -c);                  // lado direito de quem está sentado olhando para o centro
   return {
     direita,
     avatar: ponto(MESA.a + 0.78, MESA.b + 0.78),
-    cartas: humano ? V3(0, 0, 1.0) : ponto(2.6, 1.4),
-    pilha: humano ? V3(0.88, 0, 1.08) : ponto(2.72, 1.46).addScaledVector(direita, 0.74),
-    aposta: humano ? V3(-0.78, 0, 0.82) : ponto(1.9, 0.95),    // a do humano fica ao lado, para as cartas em pé não a esconderem
-    botao: humano ? V3(-1.2, 0, 1.12) : ponto(2.55, 1.36).addScaledVector(direita, -0.58),
-    revelar: ponto(2.7, 0.95),
+    // O jogador desta tela segura as cartas no canto esquerdo da visão: as fichas dele ficam à direita e a aposta no meio.
+    cartas: local ? V3(0, 0, 1.2) : ponto(2.6, 1.4),
+    pilha: local ? V3(0.92, 0, 1.1) : ponto(2.72, 1.46).addScaledVector(direita, 0.74),
+    aposta: local ? V3(0.12, 0, 0.98) : ponto(1.9, 0.95),
+    botao: local ? V3(1.55, 0, 1.22) : ponto(2.55, 1.36).addScaledVector(direita, -0.58),
+    revelar: local ? V3(0, 0, 0.98) : ponto(2.7, 0.95),
     giro: Math.atan2(c, s),                      // giro das cartas para ficarem viradas para o jogador
   };
 }
 function criarJogador(indice, dados, grau) {
-  const geo = geometriaAssento(grau, !!dados.humano);
-  // Em 1ª pessoa o humano não tem corpo visível: a câmera fica no lugar da cabeça dele.
-  const avatar = dados.humano ? new THREE.Group() : criarAvatar({ roupa: dados.roupa, pele: dados.pele, cabelo: dados.cabelo, estilo: dados.estilo, sentado: true });
+  const local = indice === meuIndice;
+  const geo = geometriaAssento(grau, local);
+  // Em 1ª pessoa o jogador desta tela não tem corpo visível: a câmera fica no lugar da cabeça dele.
+  const avatar = local ? new THREE.Group() : criarAvatar(Object.assign({ sentado: true }, dados.visual));
   avatar.position.copy(geo.avatar);
   avatar.lookAt(0, 0, 0);
-  cena.add(avatar);
+  cena.add(avatar); avatar.updateMatrixWorld();
+  let bracos = null;
+  if (!local) {
+    bracos = criarBracos(avatar, dados.visual.roupa, dados.visual.pele, 0.16);
+    for (const lado of ['E', 'D']) {
+      const m = bracos[lado];
+      m.repouso.copy(avatar.localToWorld(V3(m.s * 0.2, 0.16, 0.5))); m.pos.copy(m.repouso);
+    }
+  }
   const grupoPilha = new THREE.Group(); grupoPilha.position.copy(geo.pilha); grupoPilha.rotation.y = geo.giro; cena.add(grupoPilha);
   const grupoAposta = new THREE.Group(); grupoAposta.position.copy(geo.aposta); cena.add(grupoAposta);
+  const leque = new THREE.Group(); cena.add(leque);
   const rotulo = document.createElement('div'); rotulo.className = 'rotulo'; $('rotulos').appendChild(rotulo);
   const j = {
-    indice, nome: dados.nome, humano: !!dados.humano, personalidade: dados.personalidade || null,
+    indice, nome: dados.nome, tipo: dados.tipo, local, idRede: dados.id || null, personalidade: dados.personalidade || null,
     fichas: CONFIG.fichasIniciais, aposta: 0, total: 0, cartas: [], malhas: [],
     desistiu: false, allIn: false, eliminado: false, agiu: false, aumentos: 0, revelado: false, ultimaAcao: '',
-    geo, avatar, grupoPilha, grupoAposta, rotulo, ancora: geo.avatar.clone().setY(1.5),
+    geo, avatar, bracos, leque, lequeBase: V3(0, 0, 0), segurando: false, grupoPilha, grupoAposta, rotulo, ancora: geo.avatar.clone().setY(1.5),
   };
+  posicionarLeque(j);
   montarPilha(grupoPilha, j.fichas, true);
   return j;
 }
@@ -1314,6 +1437,106 @@ function proximo(indice, filtro) {
 }
 const proximoVivo = i => proximo(i, j => !j.eliminado);
 
+// ---- Cartas seguradas na mão ----
+// Cada jogador tem um "leque": um grupo na pose de quem segura as cartas, com a face virada para os próprios olhos.
+// Quando o jogador pega uma carta, ela passa a ser filha do leque; quando solta, volta para a cena.
+const _bx = new THREE.Vector3(), _by = new THREE.Vector3(), _bz = new THREE.Vector3(), _base = new THREE.Matrix4();
+function orientarLeque(g, pos, olhos) {
+  g.position.copy(pos);
+  _by.subVectors(olhos, pos).normalize();                                          // a face da carta (+y) olha para os olhos
+  _bz.copy(EIXO_Y).addScaledVector(_by, -EIXO_Y.dot(_by)).normalize().negate();    // o topo da carta (−z) aponta para cima
+  _bx.crossVectors(_by, _bz);
+  g.quaternion.setFromRotationMatrix(_base.makeBasis(_bx, _by, _bz));
+}
+function posicionarLeque(j) {
+  if (j.local) {
+    // No canto de baixo, à esquerda da visão, logo acima da barra de ações.
+    const retrato = innerWidth < innerHeight;
+    const yaw = retrato ? 0.15 : 0.3, pitch = retrato ? -0.68 : -0.5, d = 1.9, cp = Math.cos(pitch);
+    const pos = V3(visao.olho.x - Math.sin(yaw) * cp * d, visao.olho.y + Math.sin(pitch) * d, visao.olho.z - Math.cos(yaw) * cp * d);
+    orientarLeque(j.leque, pos, visao.olho);
+  } else {
+    j.avatar.updateMatrixWorld();
+    orientarLeque(j.leque, j.avatar.localToWorld(V3(0.13, 0.35, 0.52)), j.avatar.localToWorld(V3(0, 0.66, 0.08)));
+  }
+  j.lequeBase.copy(j.leque.position);
+}
+// Lugar de cada carta dentro do leque: abertas em leque, a segunda por cima da primeira.
+const ENCAIXES = [{ x: -0.09, y: 0, z: 0, giro: 0.14 }, { x: 0.09, y: 0.006, z: 0.012, giro: -0.14 }];
+const _eulerLeque = new THREE.Euler(0, 0, 0, 'YXZ');
+function pegarCarta(j, m, i, dur = 380) {
+  const e = ENCAIXES[i];
+  j.leque.attach(m);                             // muda de pai sem mudar de lugar
+  j.segurando = true;
+  const p0 = m.position.clone(), q0 = m.quaternion.clone(), p1 = V3(e.x, e.y, e.z);
+  const q1 = new THREE.Quaternion().setFromEuler(_eulerLeque.set(0, e.giro, 0, 'YXZ'));
+  return animar(dur, k => {
+    m.position.lerpVectors(p0, p1, k); m.position.y += Math.sin(Math.PI * k) * 0.06;
+    m.quaternion.copy(q0).slerp(q1, k);
+  });
+}
+function soltarCartas(j) {
+  for (const m of j.malhas) if (m.parent !== cena) cena.attach(m);
+  j.segurando = false;
+}
+
+// Mãos do jogador desta tela, vistas em 1ª pessoa: a esquerda segura as cartas, a direita mexe nas fichas.
+const proprias = { E: null, D: null, polegar: null };
+function criarMaosProprias() {
+  const manga = mat(0xd0932b, 0.85), pele = mat(0xe6b98f, 0.7);
+  for (const lado of ['E', 'D']) {
+    const s = lado === 'E' ? -1 : 1;
+    const mao = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), pele); mao.castShadow = true; cena.add(mao);
+    const antebraco = criarMembro(cena, V3(0, 0, 0), V3(0, 1, 0), 0.08, manga);
+    const repouso = V3(s * 0.66, 0.12, 1.74);
+    proprias[lado] = { s, mao, antebraco, repouso, pos: repouso.clone(), cotovelo: V3(s * 0.62, 0.2, 2.9) };
+  }
+  proprias.polegar = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), pele);
+  proprias.polegar.scale.set(1, 0.7, 2); cena.add(proprias.polegar);
+  mostrarMaosProprias(false);
+}
+function mostrarMaosProprias(ligar) {
+  for (const lado of ['E', 'D']) { proprias[lado].mao.visible = ligar; proprias[lado].antebraco.visible = ligar; }
+  proprias.polegar.visible = false;
+}
+const _alvoMao = new THREE.Vector3();
+// A cada quadro: quem segura cartas leva a mão até elas, as cartas balançam de leve e os braços acompanham.
+function atualizarJogadores3D(t, dt) {
+  const k = Math.min(1, dt * 9);
+  for (const j of jogo.jogadores) {
+    if (j.eliminado) continue;
+    j.leque.position.y = j.lequeBase.y + Math.sin(t * 1.4 + j.indice * 1.7) * 0.006 + (jogo.vez === j && j.segurando ? 0.03 : 0);
+    if (j.local) {
+      const m = proprias.E;
+      j.leque.updateMatrixWorld();
+      if (j.segurando) {
+        m.pos.lerp(j.leque.localToWorld(_alvoMao.set(0, -0.07, 0.27)), k);
+        proprias.polegar.visible = true;
+        proprias.polegar.position.copy(j.leque.localToWorld(_alvoMao.set(-0.03, 0.03, 0.2)));
+        proprias.polegar.quaternion.copy(j.leque.quaternion);
+      } else { m.pos.lerp(m.repouso, k); proprias.polegar.visible = false; }
+    } else if (j.bracos) {
+      const m = j.bracos.D;
+      if (j.segurando) { j.leque.updateMatrixWorld(); m.pos.lerp(j.leque.localToWorld(_alvoMao.set(0, -0.05, 0.25)), k); }
+      else m.pos.lerp(m.repouso, k);
+      atualizarBracos(j.bracos);
+    }
+  }
+  for (const lado of ['E', 'D']) {
+    const m = proprias[lado];
+    if (!m.mao.visible) continue;
+    m.mao.position.copy(m.pos);
+    posicionarMembro(m.antebraco, m.cotovelo, m.pos);
+  }
+}
+// A mão livre do jogador empurra as fichas da pilha para a aposta.
+function gestoAposta(j) {
+  const m = j.local ? proprias.D : (j.bracos && j.bracos.E);
+  if (!m) return;
+  const a = j.geo.pilha.clone().setY(0.2), b = V3().lerpVectors(j.geo.pilha, j.geo.aposta, 0.6).setY(0.2);
+  (async () => { await moverPonto(m.pos, a, 140); await moverPonto(m.pos, b, 260); await moverPonto(m.pos, m.repouso, 320); })();
+}
+
 /* =====================================================================
    12. HUD: rótulos, balão do juiz, pote, histórico
    ===================================================================== */
@@ -1322,7 +1545,7 @@ let balaoAte = 0;
 function atualizarRotulo(j) {
   const r = j.rotulo;
   if (j.eliminado) {
-    r.className = 'rotulo eliminado';
+    r.className = 'rotulo eliminado' + (j.local ? ' oculto' : '');
     r.innerHTML = `<div class="nome">${escapar(j.nome)}</div><div class="fichas">Eliminado</div>`;
     return;
   }
@@ -1330,9 +1553,10 @@ function atualizarRotulo(j) {
   if (j.indice === jogo.botao) marcas += '<span class="marca">D</span>';
   if (j.indice === jogo.sbIdx) marcas += '<span class="marca blind">SB</span>';
   if (j.indice === jogo.bbIdx) marcas += '<span class="marca blind">BB</span>';
-  const perfil = j.personalidade ? `<div class="perfil">${PERSONALIDADES[j.personalidade].rotulo}</div>` : '';
-  r.className = 'rotulo' + (jogo.vez === j ? ' vez' : '') + (j.desistiu ? ' fora' : '') + (j.humano ? ' oculto' : '');
-  if (j.humano) $('minha-posicao').innerHTML = marcas;
+  const perfil = `<div class="perfil">${j.tipo === 'bot' ? 'Bot · ' + PERSONALIDADES[j.personalidade].rotulo : 'Jogador'}</div>`;
+  // As informações do jogador desta tela ficam na barra de ações, não em um rótulo.
+  r.className = 'rotulo' + (jogo.vez === j ? ' vez' : '') + (j.desistiu ? ' fora' : '') + (j.local ? ' oculto' : '');
+  if (j.local) $('minha-posicao').innerHTML = marcas;
   r.innerHTML = `<div class="nome">${escapar(j.nome)}${marcas}</div>${perfil}<div class="fichas">${fmt(j.fichas)}</div>` +
     (j.ultimaAcao ? `<div class="acao">${escapar(j.ultimaAcao)}</div>` : '');
 }
@@ -1343,13 +1567,18 @@ function projetar(el, pos, margem = 0, preso = false) {
   if (_proj.z > 1) { el.style.visibility = 'hidden'; return; }
   let x = (_proj.x * 0.5 + 0.5) * innerWidth;
   let y = (-_proj.y * 0.5 + 0.5) * innerHeight;
-  if (margem) { x = limitar(x, margem, innerWidth - margem); y = Math.max(y, el.offsetHeight + 14); }
-  if (preso) { const m = el.offsetWidth / 2 + 4; x = limitar(x, m, innerWidth - m); y = Math.max(y, el.offsetHeight + 4); }   // rótulos não saem da tela
+  if (margem) { x = limitar(x, margem, innerWidth - margem); y = Math.max(y, el.offsetHeight + topoLivre); }
+  if (preso) { const m = el.offsetWidth / 2 + 4; x = limitar(x, m, innerWidth - m); y = Math.max(y, el.offsetHeight + 46); }   // rótulos não saem da tela nem sobem na barra do alto
   el.style.visibility = '';
   el.style.transform = `translate(-50%, -100%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)` + (el.id === 'balao' && !el.classList.contains('visivel') ? ' scale(.6)' : '');
 }
+let topoLivre = 14;                              // o balão do juiz não sobe além daqui (abaixo do painel do pote, quando ele existe)
+function medirTopoLivre() {
+  const hud = $('hud-centro');
+  topoLivre = hud.offsetParent ? hud.getBoundingClientRect().bottom + 6 : 14;
+}
 function atualizarProjecoes(agora) {
-  for (const j of jogo.jogadores) if (!j.humano || j.eliminado) projetar(j.rotulo, j.ancora, 0, true);
+  for (const j of jogo.jogadores) if (!j.local) projetar(j.rotulo, j.ancora, 0, true);
   for (const r of rotulosFixos) projetar(r.el, r.pos);
   const balao = $('balao');
   if (balaoAte && agora > balaoAte) { balao.classList.remove('visivel'); balaoAte = 0; }
@@ -1377,19 +1606,19 @@ function atualizarHUD() {
   $('valor-pote').textContent = fmt(total);
   $('pote3d').innerHTML = `<small>Pote</small> ${fmt(total)}`;
   $('pote3d').classList.toggle('oculto', total <= 0);
-  $('info-mao').innerHTML = `Mão ${jogo.numeroMao}<small>Blinds ${fmt(jogo.sb)}/${fmt(jogo.bb)}</small>`;
+  $('info-mao').innerHTML = `Mão ${jogo.numeroMao}<small>Blinds ${fmt(jogo.sb)}/${fmt(jogo.bb)}${rede.modo === 'solo' ? '' : ' · Sala ' + rede.codigo.toUpperCase()}</small>`;
   const par = $('hud-paralelos');
   if (jogo.potesInfo.length > 1) {
     par.textContent = jogo.potesInfo.map((p, i) => (i === 0 ? 'Principal ' : 'Paralelo ') + fmt(p.valor)).join(' · ');
     par.classList.remove('oculto');
   } else par.classList.add('oculto');
-  const h = jogo.jogadores[0];
-  if (h) { $('minhas-fichas').textContent = fmt(h.fichas) + ' fichas'; }
+  const h = eu();
+  if (h) $('minhas-fichas').textContent = h.eliminado ? 'Eliminado' : fmt(h.fichas) + ' fichas';
 }
 const miniaturas = {};                           // id da carta -> elementos 2D que a mostram
 function criarMiniatura(c) {
   const d = document.createElement('div'); d.className = 'carta-mini';
-  if (c) {
+  if (c && c.v) {
     d.classList.add('cheia');
     const img = document.createElement('img'); img.src = imagemCarta(c); img.alt = NOME_VALOR[c.v] + ' de ' + NAIPES[c.n];
     d.appendChild(img);
@@ -1402,17 +1631,17 @@ function atualizarMesaHUD() {
   for (let i = 0; i < 5; i++) el.appendChild(criarMiniatura(jogo.mesa[i]));
 }
 function atualizarMinhaMao() {
-  const h = jogo.jogadores[0], el = $('minhas-cartas');
+  const h = eu(), el = $('minhas-cartas');
   el.innerHTML = '';
   for (let i = 0; i < 2; i++) el.appendChild(criarMiniatura(h && h.cartas[i]));
   let texto = '';
-  if (h && h.cartas.length === 2) {
+  if (h && h.eliminado) texto = 'Você está assistindo';
+  else if (h && h.cartas.length === 2) {
     if (h.desistiu) texto = 'Você desistiu desta mão';
     else if (jogo.mesa.length >= 3) texto = melhorMao(h.cartas.concat(jogo.mesa)).nome;
     else texto = h.cartas[0].v === h.cartas[1].v ? 'Par na mão' : 'Carta Alta';
   }
   $('minha-jogada').textContent = texto;
-  el.classList.toggle('apagada', !!(h && h.desistiu));
   el.style.opacity = h && h.desistiu ? 0.4 : 1;
 }
 function marcarVez(j) {
@@ -1478,9 +1707,10 @@ function decidirBot(j) {
 }
 
 /* =====================================================================
-   14. AÇÕES DO JOGADOR HUMANO (botões, slider, teclado)
+   14. AÇÕES DO JOGADOR DESTA TELA (botões, slider, teclado)
    ===================================================================== */
-let resolverAcao = null, contextoAcao = null;
+let resolverAcao = null, contextoAcao = null, contagem = null;
+const TEMPO_DA_VEZ = 45;                         // segundos para agir em partidas on-line
 function definirStatus(t) { $('status').textContent = t; }
 function habilitarBarra(ligar) {
   $('barra').classList.toggle('espera', !ligar);
@@ -1494,6 +1724,7 @@ function atualizarValorAumento() {
   $('txt-raise').textContent = tudo ? 'All-in' : (jogo.apostaAtual === 0 ? 'Apostar' : 'Aumentar');
   $('sub-raise').textContent = tudo ? fmt(c.maxTotal) : (jogo.apostaAtual === 0 ? fmt(v) : 'para ' + fmt(v));
 }
+// Abre a barra de ações e devolve uma Promise com a escolha do jogador.
 function pedirAcaoHumano(j) {
   const pagar = Math.max(0, jogo.apostaAtual - j.aposta);
   const maxTotal = j.aposta + j.fichas;
@@ -1515,15 +1746,42 @@ function pedirAcaoHumano(j) {
   if (!podeAumentar) { $('txt-raise').textContent = 'Aumentar'; $('sub-raise').textContent = 'Raise'; $('valor-aumento').textContent = '–'; }
   return new Promise(r => { resolverAcao = r; });
 }
-function responderAcao(acao) {
-  if (!resolverAcao) return;
-  const r = resolverAcao; resolverAcao = null; contextoAcao = null;
+// Fecha a barra de ações e volta os botões para o texto neutro (com ou sem resposta do jogador).
+function fecharPedido() {
+  resolverAcao = null; contextoAcao = null;
+  pararContagem();
   habilitarBarra(false); definirStatus('');
-  // Volta os botões para o texto neutro enquanto os outros jogam.
   $('txt-call').textContent = 'Passar'; $('sub-call').textContent = 'Check';
   $('txt-raise').textContent = 'Aumentar'; $('sub-raise').textContent = 'Raise';
-  $('sub-allin').textContent = fmt(jogo.jogadores[0].fichas); $('valor-aumento').textContent = '–';
+  $('sub-allin').textContent = eu() ? fmt(eu().fichas) : '0'; $('valor-aumento').textContent = '–';
+}
+function responderAcao(acao) {
+  if (!resolverAcao) return;
+  const r = resolverAcao;
+  fecharPedido();
   r(acao);
+}
+// Contagem regressiva da vez (só on-line).
+function iniciarContagem(segundos, aoEsgotar) {
+  pararContagem();
+  const fim = Date.now() + segundos * 1000;
+  const tique = () => {
+    const resta = Math.ceil((fim - Date.now()) / 1000);
+    if (resta > 0) return definirStatus(`Sua vez! ${resta} s`);
+    pararContagem();
+    if (aoEsgotar) aoEsgotar();
+  };
+  contagem = setInterval(tique, 500); tique();
+}
+function pararContagem() { if (contagem) clearInterval(contagem); contagem = null; }
+// Quem não responde a tempo passa (se puder) ou desiste.
+const acaoPadrao = j => ({ tipo: jogo.apostaAtual > j.aposta ? 'fold' : 'check' });
+function pedirAcaoComLimite(j) {
+  if (rede.modo === 'solo') return pedirAcaoHumano(j);
+  return new Promise(resolver => {
+    pedirAcaoHumano(j).then(resolver);
+    iniciarContagem(TEMPO_DA_VEZ, () => { fecharPedido(); resolver(acaoPadrao(j)); });
+  });
 }
 function ajustarSlider(v) {
   const c = contextoAcao; if (!c || !c.podeAumentar) return;
@@ -1564,8 +1822,355 @@ function ligarBarra() {
 }
 
 /* =====================================================================
-   15. MOTOR DO JOGO (Texas Hold'em)
+   15. JOGO ON-LINE: salas, transporte das mensagens e sincronização
+   =====================================================================
+   Como funciona: o navegador do anfitrião roda o jogo de verdade (baralho, bots, regras). Tudo o que não é
+   previsível vira uma "entrada" numerada, transmitida aos convidados: as cartas de cada um, cada ação, as cartas
+   da mesa e as cartas reveladas no showdown. Os convidados rodam o mesmo motor, mas em vez de sortear ou decidir,
+   esperam a próxima entrada. Assim todos veem as mesmas animações, cada um do seu assento, e ninguém recebe as
+   cartas fechadas dos outros antes da hora.
+   As mensagens podem se perder no caminho, então as entradas são numeradas e o convidado pede as que faltarem. */
+const PREFIXO_PEER = 'poker3d-sala-';
+const URL_PEERJS = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+const LETRAS_CODIGO = 'abcdefghjkmnpqrstuvwxyz23456789';
+const novoCodigo = () => Array.from({ length: 5 }, () => LETRAS_CODIGO[Math.floor(Math.random() * LETRAS_CODIGO.length)]).join('');
+const limparNome = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 14) || 'Jogador';
+let geracao = 0;                                 // muda quando se sai de uma sala: laços antigos param sozinhos
+
+function carregarScript(url) {
+  return new Promise((ok, erro) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = ok; s.onerror = () => erro(new Error('script'));
+    document.head.appendChild(s);
+  });
+}
+const comPrazo = (promessa, ms) => Promise.race([promessa, new Promise((_, erro) => setTimeout(() => erro(new Error('tempo')), ms))]);
+
+// --- Transportes: três jeitos de levar mensagens, com a mesma interface ---
+//   abrir(codigo, anfitriao) -> Promise | enviar(msg, paraId ou null = todos) | aoMensagem(msg, deId) | aoSair(id) | fechar()
+
+// 1) Sala em tempo real da própria página publicada (quando o jogo é aberto como artifact no claude.ai).
+function transporteSala(room) {
+  const t = {
+    id: null, sala: null, aoMensagem() {}, aoSair() {}, aoErro() {},
+    async abrir(codigo) {
+      t.sala = await room.join('poker-' + codigo);
+      t.id = await comPrazo(new Promise(ok => {
+        let parar = null;
+        const ver = () => { const p = t.sala.peers().find(x => x.sameTab); if (p) { ok(p.peer); if (parar) parar(); } return !!p; };
+        if (!ver()) parar = t.sala.onPeers(ver);
+      }), 10000);
+      t.sala.on('msg', m => {
+        if (m.sameTab || !m.data) return;
+        if (m.data.para && m.data.para !== t.id) return;
+        t.aoMensagem(m.data.m, m.peer);
+      }, e => t.aoErro(e));
+      // Quedas rápidas de ligação são normais: só considera que alguém saiu se não voltar em alguns segundos.
+      t.sala.onPeers(mudanca => {
+        for (const p of mudanca.left) setTimeout(() => { if (t.sala && !t.sala.peers().some(x => x.peer === p.peer)) t.aoSair(p.peer); }, 8000);
+      });
+    },
+    enviar(msg, para) {
+      if (!t.sala) return;
+      t.sala.emit('msg', para ? { para, m: msg } : { m: msg }).catch(e => { if (e && e.code === 'not_permitted') t.aoErro(e); });
+    },
+    fechar() { try { if (t.sala) t.sala.leave(); } catch (_) { /* já saiu */ } t.sala = null; },
+  };
+  return t;
+}
+// 2) PeerJS (WebRTC direto entre os navegadores), para o arquivo HTML aberto fora do claude.ai.
+function transportePeer() {
+  const t = {
+    id: null, peer: null, conexoes: {}, aoMensagem() {}, aoSair() {}, aoErro() {},
+    async abrir(codigo, anfitriao) {
+      if (!window.Peer) await carregarScript(URL_PEERJS);
+      // ?peer=host:porta aponta para um servidor PeerJS próprio (usado nos testes).
+      const proprio = PARAMS.get('peer'), opc = { debug: 0 };
+      if (proprio) Object.assign(opc, { host: proprio.split(':')[0], port: Number(proprio.split(':')[1]) || 9000, path: '/', secure: false });
+      t.peer = anfitriao ? new window.Peer(PREFIXO_PEER + codigo, opc) : new window.Peer(opc);
+      t.id = await comPrazo(new Promise((ok, erro) => { t.peer.on('open', ok); t.peer.on('error', erro); }), 15000);
+      t.peer.on('disconnected', () => { try { t.peer.reconnect(); } catch (_) { /* sem volta */ } });
+      if (anfitriao) {
+        t.peer.on('connection', c => c.on('open', () => t.ligar(c)));
+      } else {
+        const c = t.peer.connect(PREFIXO_PEER + codigo, { reliable: true, serialization: 'json' });
+        await comPrazo(new Promise((ok, erro) => { c.on('open', ok); c.on('error', erro); t.peer.on('error', erro); }), 15000);
+        t.ligar(c);
+      }
+    },
+    ligar(c) {
+      t.conexoes[c.peer] = c;
+      c.on('data', d => t.aoMensagem(d, c.peer));
+      const fim = () => { if (t.conexoes[c.peer] === c) { delete t.conexoes[c.peer]; t.aoSair(c.peer); } };
+      c.on('close', fim); c.on('error', fim);
+    },
+    enviar(msg, para) {
+      for (const id in t.conexoes) if (!para || para === id) { const c = t.conexoes[id]; if (c.open) c.send(msg); }
+    },
+    fechar() { try { t.peer && t.peer.destroy(); } catch (_) { /* já fechado */ } },
+  };
+  return t;
+}
+// 3) BroadcastChannel entre abas do mesmo navegador (?rede=local). Serve para testar; ?perda=0.2 simula mensagens perdidas.
+function transporteLocal() {
+  const perda = Number(PARAMS.get('perda')) || 0;
+  const t = {
+    id: 'aba-' + Math.random().toString(36).slice(2, 8), canal: null, aoMensagem() {}, aoSair() {}, aoErro() {},
+    async abrir(codigo) {
+      t.canal = new BroadcastChannel('poker3d-' + codigo);
+      t.canal.onmessage = e => {
+        const d = e.data;
+        if (!d || (d.para && d.para !== t.id)) return;
+        if (d.saiu) return t.aoSair(d.de);
+        if (Math.random() < perda) return;
+        t.aoMensagem(d.m, d.de);
+      };
+      addEventListener('pagehide', () => t.fechar());
+    },
+    enviar(msg, para) { if (t.canal) t.canal.postMessage({ de: t.id, para: para || null, m: msg }); },
+    fechar() { if (t.canal) { t.canal.postMessage({ de: t.id, saiu: true }); t.canal.close(); t.canal = null; } },
+  };
+  return t;
+}
+async function escolherTransporte() {
+  if (PARAMS.get('rede') === 'local') return transporteLocal();
+  if (window.claude && typeof window.claude.use === 'function') {
+    const room = await window.claude.use('room');
+    if (room) return transporteSala(room);
+  }
+  return transportePeer();
+}
+function textoDoErroDeRede(e) {
+  const tipo = e && (e.type || e.code || e.message);
+  if (tipo === 'peer-unavailable') return 'Sala não encontrada. Confira o código com quem criou a sala.';
+  if (tipo === 'not_permitted' || tipo === 'not_granted') return 'Esta página não deixa você jogar on-line: peça a quem compartilhou um acesso que permita interagir.';
+  if (tipo === 'script' || tipo === 'network' || tipo === 'server-error' || tipo === 'socket-error') return 'Não foi possível ligar ao serviço de salas. Verifique a internet e tente de novo.';
+  if (tipo === 'tempo') return 'A ligação demorou demais. Tente de novo.';
+  return 'Não foi possível abrir a ligação on-line neste navegador.';
+}
+function enviarAoAnfitriao(msg) { if (rede.transporte) rede.transporte.enviar(msg, rede.anfitriaoId); }
+
+// --- Anfitrião: transmite as entradas numeradas e atende os convidados ---
+function transmitir(d, porConvidado) {
+  if (rede.modo !== 'anfitriao') return;
+  rede.registro.push({ d, porConvidado: porConvidado || null });
+  enviarEntrada(rede.registro.length - 1, null);
+}
+// porConvidado: { idDoConvidado: campos só dele } — é assim que cada um recebe apenas as próprias cartas.
+function enviarEntrada(n, soPara) {
+  const r = rede.registro[n];
+  if (!r.porConvidado) return rede.transporte.enviar({ t: 'e', n, d: r.d }, soPara);
+  for (const c of rede.convidados) {
+    if (soPara && c.id !== soPara) continue;
+    rede.transporte.enviar({ t: 'e', n, d: Object.assign({}, r.d, r.porConvidado[c.id] || {}) }, c.id);
+  }
+}
+function enviarSala() {
+  if (rede.modo !== 'anfitriao' || !rede.transporte) return;
+  rede.transporte.enviar({
+    t: 'sala', jogadores: [{ id: rede.meuId, nome: rede.nome }].concat(rede.convidados),
+    bots: rede.bots, emJogo: rede.emJogo, base: rede.base, n: rede.registro.length,
+  });
+}
+function sanearAcao(a) {
+  const tipo = a && ['fold', 'check', 'call', 'raise', 'allin'].includes(a.tipo) ? a.tipo : 'check';
+  const total = a && Number.isFinite(Number(a.total)) ? Number(a.total) : 0;
+  return { tipo, total };
+}
+function receberNoAnfitriao(msg, de) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'entrar') {
+    if (rede.convidados.some(c => c.id === de)) return;        // já está na sala
+    if (rede.emJogo) return rede.transporte.enviar({ t: 'recusa', motivo: 'A partida já começou. Tente de novo quando ela terminar.' }, de);
+    if (rede.convidados.length >= 4) return rede.transporte.enviar({ t: 'recusa', motivo: 'A sala está cheia (5 jogadores).' }, de);
+    rede.convidados.push({ id: de, nome: limparNome(msg.nome) });
+    rede.bots = Math.min(rede.bots, 4 - rede.convidados.length);
+    enviarSala(); mostrarSala();
+    // Teste automático: ?iniciar=N começa a partida quando N convidados entrarem.
+    if (PARAMS.has('iniciar') && rede.convidados.length >= Number(PARAMS.get('iniciar'))) setTimeout(comecarPartidaOnline, 600);
+  } else if (msg.t === 'falta') {
+    const de0 = Math.max(0, Number(msg.de) | 0);
+    for (let n = de0; n < Math.min(rede.registro.length, de0 + 20); n++) enviarEntrada(n, de);
+  } else if (msg.t === 'acao') {
+    const e = rede.esperandoAcao;
+    if (e && e.id === de && msg.vez === e.vez) { rede.esperandoAcao = null; clearTimeout(e.limite); e.resolver(sanearAcao(msg.acao)); }
+  } else if (msg.t === 'tchau') convidadoSaiu(de);
+}
+// Convidado saiu: na sala de espera some da lista; no meio da partida um bot assume o lugar.
+function convidadoSaiu(id) {
+  const i = rede.convidados.findIndex(c => c.id === id);
+  if (i < 0) return;
+  rede.convidados.splice(i, 1);
+  const j = jogo.jogadores.find(x => x.idRede === id);
+  if (rede.emJogo && j) {
+    j.tipo = 'bot'; j.idRede = null; j.personalidade = j.personalidade || 'equilibrado';
+    const texto = `${j.nome} saiu da sala. Um bot assume o lugar.`;
+    registrar(texto, true); rede.transporte.enviar({ t: 'aviso', texto });
+    atualizarRotulo(j);
+    const e = rede.esperandoAcao;
+    if (e && e.id === id) { rede.esperandoAcao = null; clearTimeout(e.limite); e.resolver(acaoPadrao(j)); }
+  }
+  enviarSala(); mostrarSala();
+}
+// Espera a ação de um jogador remoto (com limite de tempo).
+function acaoRemota(j) {
+  return new Promise(resolver => {
+    const e = { id: j.idRede, vez: jogo.numAcoes, resolver };
+    e.limite = setTimeout(() => { if (rede.esperandoAcao === e) { rede.esperandoAcao = null; resolver(acaoPadrao(j)); } }, (TEMPO_DA_VEZ + 6) * 1000);
+    rede.esperandoAcao = e;
+  });
+}
+
+// --- Convidado: recebe as entradas em ordem ---
+function receberEntrada(n, d) {
+  if (typeof n !== 'number' || n < rede.proxima || rede.foraDeOrdem[n]) return;
+  rede.foraDeOrdem[n] = d;
+  while (rede.foraDeOrdem[rede.proxima]) {
+    rede.fila.push(rede.foraDeOrdem[rede.proxima]);
+    delete rede.foraDeOrdem[rede.proxima];
+    rede.proxima++;
+  }
+  if (rede.esperaEntrada && rede.fila.length) { const r = rede.esperaEntrada; rede.esperaEntrada = null; r(rede.fila.shift()); }
+  if (Object.keys(rede.foraDeOrdem).length) pedirFaltantes();
+}
+function pedirFaltantes() {
+  if (Date.now() - rede.ultimoPedido < 700) return;
+  rede.ultimoPedido = Date.now();
+  enviarAoAnfitriao({ t: 'falta', de: rede.proxima });
+}
+function proximaEntrada() {
+  if (rede.fila.length) return Promise.resolve(rede.fila.shift());
+  return new Promise(r => { rede.esperaEntrada = r; });
+}
+// O motor do convidado espera uma entrada de um tipo certo; outra coisa significa que as telas saíram de sincronia.
+async function entradaDaRede(tipo) {
+  const d = await proximaEntrada();
+  if (d.t === tipo) return d;
+  conexaoPerdida('As telas saíram de sincronia e a partida não pode continuar nesta tela.');
+  return new Promise(() => {});
+}
+function receberNoConvidado(msg, de) {
+  if (!msg || typeof msg !== 'object') return;
+  if (rede.anfitriaoId && de !== rede.anfitriaoId) return;     // só o anfitrião manda no jogo
+  if (msg.t === 'sala' && Array.isArray(msg.jogadores)) {
+    rede.anfitriaoId = de; rede.ultimoSinal = Date.now(); rede.salaInfo = msg;
+    const dentro = msg.jogadores.some(p => p.id === rede.meuId);
+    if (dentro && !rede.naSala) { rede.naSala = true; rede.proxima = Number(msg.base) || 0; }   // ouve a partir da próxima partida
+    if (rede.naSala && msg.n > rede.proxima) pedirFaltantes();
+    mostrarSala();
+  } else if (msg.t === 'e') {
+    rede.ultimoSinal = Date.now();
+    if (rede.naSala) receberEntrada(msg.n, msg.d);
+  } else if (msg.t === 'recusa') {
+    if (!rede.naSala) { const motivo = String(msg.motivo || 'Não foi possível entrar na sala.'); sairDaSala(); mostrarErroInicio(motivo); }
+  } else if (msg.t === 'aviso') registrar(String(msg.texto || '').slice(0, 140), true);
+  else if (msg.t === 'tchau') conexaoPerdida('O anfitrião encerrou a sala.');
+}
+
+// --- Abrir, entrar e sair de salas ---
+function zerarRede(modo) {
+  rede.temporizadores.forEach(clearInterval);
+  if (rede.reenvio) clearInterval(rede.reenvio);
+  if (rede.esperandoAcao) clearTimeout(rede.esperandoAcao.limite);
+  Object.assign(rede, {
+    modo, transporte: null, codigo: '', meuId: null, anfitriaoId: null, convidados: [], bots: 0, emJogo: false,
+    registro: [], base: 0, esperandoAcao: null, fila: [], proxima: 0, foraDeOrdem: {}, esperaEntrada: null,
+    naSala: false, ultimoSinal: Date.now(), ultimoPedido: 0, temporizadores: [], reenvio: null, salaInfo: null,
+  });
+}
+async function criarSala(nome, codigoFixo) {
+  const g = ++geracao;
+  zerarRede('solo');
+  let t, codigo;
+  for (let tentativa = 0; ; tentativa++) {
+    t = await escolherTransporte(); codigo = codigoFixo || novoCodigo();
+    try { await t.abrir(codigo, true); break; }
+    catch (e) { t.fechar(); if (tentativa >= 2 || (e && e.type) !== 'unavailable-id') throw e; }   // código já usado: sorteia outro
+  }
+  if (g !== geracao) return t.fechar();
+  zerarRede('anfitriao');
+  Object.assign(rede, { transporte: t, codigo, meuId: t.id, nome, bots: limitar(Number(PARAMS.get('botsala')) || 0, 0, 4) });
+  t.aoMensagem = receberNoAnfitriao; t.aoSair = convidadoSaiu;
+  t.aoErro = e => { sairDaSala(); mostrarErroInicio(textoDoErroDeRede(e)); };
+  rede.temporizadores.push(setInterval(enviarSala, 1500));
+  try { history.replaceState(null, '', '#sala-' + codigo); } catch (_) { /* sem histórico: só não atualiza o endereço */ }
+  velocidadeBase = Number(PARAMS.get('vel')) || 1;
+  mostrarSala(); irPara('sala');
+}
+async function entrarEmSala(nome, codigo) {
+  const g = ++geracao;
+  zerarRede('solo');
+  const t = await escolherTransporte();
+  await t.abrir(codigo, false);
+  if (g !== geracao) return t.fechar();
+  zerarRede('convidado');
+  Object.assign(rede, { transporte: t, codigo, meuId: t.id, nome });
+  t.aoMensagem = receberNoConvidado;
+  t.aoSair = id => { if (id === rede.anfitriaoId) conexaoPerdida('O anfitrião saiu da sala.'); };
+  t.aoErro = e => { sairDaSala(); mostrarErroInicio(textoDoErroDeRede(e)); };
+  const inicio = Date.now();
+  const pedir = () => {
+    if (rede.naSala) return;
+    if (Date.now() - inicio > 12000) { sairDaSala(); return mostrarErroInicio('Sala não encontrada. Confira o código com quem criou a sala.'); }
+    enviarAoAnfitriao({ t: 'entrar', nome });
+  };
+  rede.temporizadores.push(setInterval(pedir, 1500));
+  rede.temporizadores.push(setInterval(() => {
+    if (rede.naSala && Date.now() - rede.ultimoSinal > 15000) conexaoPerdida('A ligação com o anfitrião caiu.');
+  }, 3000));
+  velocidadeBase = Number(PARAMS.get('vel')) || 1;
+  pedir(); mostrarSala(); irPara('sala');
+  lacoConvidado();
+}
+// O convidado fica ouvindo: cada entrada "inicio" abre uma partida nova.
+async function lacoConvidado() {
+  const g = geracao;
+  while (g === geracao) {
+    const d = await proximaEntrada();
+    if (g !== geracao) return;
+    if (d.t === 'inicio') { prepararPartida(d); await cicloDoJogo(); }
+  }
+}
+function comecarPartidaOnline() {
+  if (rede.modo !== 'anfitriao' || rede.emJogo) return;
+  const assentos = [{ nome: rede.nome, tipo: 'humano', id: rede.meuId }]
+    .concat(rede.convidados.map(c => ({ nome: c.nome, tipo: 'humano', id: c.id })))
+    .concat(sortearBots(rede.bots));
+  if (assentos.length < 2) return;
+  const ini = { t: 'inicio', assentos, botao: Math.floor(Math.random() * assentos.length) };
+  rede.emJogo = true; rede.base = rede.registro.length;
+  transmitir(ini); enviarSala();
+  prepararPartida(ini);
+  cicloDoJogo();
+}
+// Sai da sala (ou fecha a sala, se for o anfitrião) e volta para a tela inicial.
+function sairDaSala() {
+  geracao++;
+  if (rede.transporte) {
+    try { rede.transporte.enviar({ t: 'tchau' }, rede.modo === 'convidado' ? rede.anfitriaoId : null); } catch (_) { /* ligação já caiu */ }
+    rede.transporte.fechar();
+  }
+  zerarRede('solo');
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (_) { /* sem histórico */ }
+  limparPartida();
+  irPara('inicio');
+}
+let avisoDeQueda = false;
+function conexaoPerdida(texto) {
+  if (rede.modo !== 'convidado' || avisoDeQueda) return;
+  avisoDeQueda = true;
+  $('titulo-fim').textContent = 'Partida encerrada';
+  $('texto-fim').textContent = texto;
+  $('btn-de-novo').textContent = 'Voltar ao início'; $('btn-de-novo').classList.remove('oculto');
+  $('btn-sair-fim').classList.add('oculto');
+  aoClicarFim = sairDaSala;
+  irPara(jogo.jogadores.length ? 'fim' : 'fim-sem-jogo');
+}
+
+/* =====================================================================
+   16. MOTOR DO JOGO (Texas Hold'em)
    ===================================================================== */
+const convidado = () => rede.modo === 'convidado';
 // Tira fichas do jogador e coloca na aposta da rodada, com as fichas voando até a frente dele.
 async function colocarFichas(j, valor) {
   valor = Math.min(valor, j.fichas);
@@ -1574,49 +2179,57 @@ async function colocarFichas(j, valor) {
   if (j.fichas === 0) j.allIn = true;
   montarPilha(j.grupoPilha, j.fichas, true);
   atualizarRotulo(j); atualizarHUD();
+  gestoAposta(j);
   await voarFichas(j.geo.pilha, j.geo.aposta, valor);
   montarPilha(j.grupoAposta, j.aposta, false);
 }
-// Onde fica cada carta fechada de um jogador.
-function posCartaJogador(j, i) {
-  const lado = i - 0.5;
-  if (j.humano) return { pos: j.geo.cartas.clone().add(V3(lado * 0.4, Math.sin(INCLINACAO_HUMANO) * CARTA.a / 2 + 0.012, 0)), giro: 0 };
-  return { pos: j.geo.cartas.clone().addScaledVector(j.geo.direita, lado * 0.2).setY(CARTA.e / 2 + 0.002 + i * 0.008), giro: j.geo.giro + lado * 0.16 };
-}
+// A carta voa fechada do baralho até a frente do jogador, que então a pega e segura na mão.
 async function distribuirCarta(j, i, c) {
   const m = criarCarta3D(c);
   m.position.copy(POS.baralho).setY(0.11); m.rotation.set(0, 0, Math.PI);
   j.malhas.push(m);
   Som.carta();
   gestoMao('D', V3().lerpVectors(POS.baralho, j.geo.cartas, 0.35).setY(0.3), 130, 200);
-  const alvo = posCartaJogador(j, i);
-  if (j.humano) {
-    const plano = alvo.pos.clone().setY(CARTA.e);
-    await mover(m, plano, 430, { arco: 0.5, rot: { y: Math.PI * 2 } });
-    m.rotation.y = 0;
-    mover(m, alvo.pos, 300, { rot: { z: 0, x: INCLINACAO_HUMANO } });   // vira e fica em pé, de frente para o jogador
-    atualizarMinhaMao();
-  } else {
-    await mover(m, alvo.pos, 430, { arco: 0.5, rot: { y: alvo.giro + Math.PI * 2 } });
-    m.rotation.y = alvo.giro;
-  }
+  const lado = i - 0.5;
+  const pouso = j.geo.cartas.clone().addScaledVector(j.geo.direita, lado * 0.24).setY(CARTA.e / 2 + 0.002 + i * 0.008);
+  await mover(m, pouso, 430, { arco: 0.5, rot: { y: j.geo.giro + Math.PI * 2 } });
+  m.rotation.y = j.geo.giro;
+  await esperar(90);
+  await pegarCarta(j, m, i);
+  if (j.local) atualizarMinhaMao();
 }
-// Cartas de quem desistiu voltam fechadas para o monte de descarte.
+// Cartas de quem desistiu são jogadas fechadas no monte de descarte.
 async function descartarCartas(j) {
+  soltarCartas(j);
   const malhas = j.malhas; j.malhas = [];
-  await Promise.all(malhas.map((m, i) => mover(m, POS.descarte.clone().setY(0.02 + i * 0.007), 380, { arco: 0.35, rot: { x: 0, y: 0.4, z: Math.PI } })));
+  await Promise.all(malhas.map((m, i) => mover(m, POS.descarte.clone().setY(0.02 + i * 0.007), 420, { arco: 0.35, rot: { x: 0, y: 0.4, z: Math.PI } })));
   malhas.forEach(removerCarta3D);
 }
-// Vira para cima as cartas dos bots que continuam na mão.
+// Quem continua na mão baixa as cartas abertas na mesa. O anfitrião conta aos convidados quais são.
 async function revelarCartas() {
+  const quem = naMao().filter(j => !j.revelado);
+  if (!quem.length) return;
+  if (convidado()) {
+    const d = await entradaDaRede('revelar');
+    for (const j of quem) {
+      const ids = d.maos[j.indice];
+      if (j.local || !ids) continue;
+      j.cartas = ids.map(cartaPorId);
+      j.malhas.forEach((m, i) => definirCarta(m, j.cartas[i]));
+    }
+  } else {
+    const maos = {};
+    for (const j of quem) maos[j.indice] = j.cartas.map(c => c.id);
+    transmitir({ t: 'revelar', maos });
+  }
   const movs = [];
-  for (const j of naMao()) {
-    if (j.revelado) continue;
+  for (const j of quem) {
     j.revelado = true;
-    if (j.humano) continue;
+    soltarCartas(j);
+    const incl = j.local ? 1.0 : 0.8;
     j.malhas.forEach((m, i) => {
-      const alvo = j.geo.revelar.clone(); alvo.x += (i - 0.5) * 0.4; alvo.y = Math.sin(0.8) * CARTA.a / 2 + 0.01;
-      movs.push(mover(m, alvo, 500, { arco: 0.3, rot: { x: 0.8, y: 0, z: 0 } }));
+      const alvo = j.geo.revelar.clone(); alvo.x += (i - 0.5) * 0.4; alvo.y = Math.sin(incl) * CARTA.a / 2 + 0.01;
+      movs.push(mover(m, alvo, 500, { arco: 0.25, rot: { x: incl, y: 0, z: 0 } }));
     });
     Som.virar();
     await esperar(200);
@@ -1625,10 +2238,13 @@ async function revelarCartas() {
 }
 // O juiz coloca cartas comunitárias fechadas no centro e depois vira uma a uma.
 async function abrirMesa(nome, qtd) {
+  let ids;
+  if (convidado()) ids = (await entradaDaRede('mesa')).ids;
+  else { ids = []; for (let k = 0; k < qtd; k++) ids.push(jogo.baralho.pop().id); transmitir({ t: 'mesa', ids }); }
   anunciar(nome + '!', true);
   const novas = [];
-  for (let k = 0; k < qtd; k++) {
-    const c = jogo.baralho.pop(), i = jogo.mesa.length;
+  for (const id of ids) {
+    const c = cartaPorId(id), i = jogo.mesa.length;
     jogo.mesa.push(c);
     const m = criarCarta3D(c);
     m.position.copy(POS.baralho).setY(0.11); m.rotation.set(0, 0, Math.PI);
@@ -1696,7 +2312,7 @@ function calcularPotes() {
   if (potes.length && totalReal > soma) potes[potes.length - 1].valor += totalReal - soma;
   return potes;
 }
-// Aplica uma ação (já validada) e anuncia.
+// Aplica uma ação e anuncia. As correções abaixo valem igual em todas as telas, então a partida não sai de sincronia.
 async function executarAcao(j, acao) {
   const pagar = Math.max(0, jogo.apostaAtual - j.aposta);
   let tipo = acao.tipo;
@@ -1704,12 +2320,12 @@ async function executarAcao(j, acao) {
   if (tipo === 'check' && pagar > 0) tipo = 'call';
   if (tipo === 'raise' && !podeAumentarAgora(j)) tipo = pagar > 0 ? 'call' : 'check';
   if (tipo === 'allin' && j.fichas <= pagar) tipo = 'call';
-  if (tipo === 'allin' && !podeAumentarAgora(j)) tipo = 'call';
+  if (tipo === 'allin' && !podeAumentarAgora(j)) tipo = pagar > 0 ? 'call' : 'check';
 
   if (tipo === 'fold') {
     j.desistiu = true; j.ultimaAcao = 'Desistiu';
     anunciar(`${j.nome} desistiu.`); Som.desistir();
-    if (j.humano) atualizarMinhaMao();
+    if (j.local) atualizarMinhaMao();
     await descartarCartas(j);
   } else if (tipo === 'check') {
     j.ultimaAcao = 'Passou';
@@ -1722,7 +2338,7 @@ async function executarAcao(j, acao) {
     await colocarFichas(j, v);
   } else {
     const maxTotal = j.aposta + j.fichas;
-    let total = tipo === 'allin' ? maxTotal : limitar(arred5(acao.total), Math.min(maxTotal, jogo.apostaAtual + jogo.aumentoMinimo), maxTotal);
+    const total = tipo === 'allin' ? maxTotal : limitar(arred5(acao.total), Math.min(maxTotal, jogo.apostaAtual + jogo.aumentoMinimo), maxTotal);
     const tudo = total === maxTotal, eraAposta = jogo.apostaAtual === 0, acrescimo = total - jogo.apostaAtual;
     if (acrescimo >= jogo.aumentoMinimo) {
       // Aumento completo: reabre a ação para todo mundo.
@@ -1743,6 +2359,42 @@ function precisaAgir(j) {
   if (j.agiu) return false;
   return podemAgir().length >= 2;                // sem ninguém para responder, não há o que decidir
 }
+// De onde vem a ação de quem está na vez: dos botões, de um bot, de um jogador remoto ou (no convidado) da rede.
+async function obterAcao(j) {
+  if (convidado()) {
+    if (j.local) {
+      // A escolha vai para o anfitrião e é reenviada até ele confirmar; vale o que voltar pela rede.
+      Som.suaVez();
+      const vez = jogo.numAcoes;
+      const mandar = a => {
+        if (jogo.numAcoes !== vez || !convidado()) return;
+        const msg = { t: 'acao', vez, acao: a };
+        enviarAoAnfitriao(msg);
+        rede.reenvio = setInterval(() => enviarAoAnfitriao(msg), 1500);
+      };
+      if (MODO_AUTO) esperar(aleatorio(500, 900)).then(() => mandar(decidirBot(j)));
+      else { pedirAcaoHumano(j).then(mandar); iniciarContagem(TEMPO_DA_VEZ, null); }
+    } else definirStatus(`Vez de ${j.nome}…`);
+    const d = await entradaDaRede('acao');
+    if (rede.reenvio) { clearInterval(rede.reenvio); rede.reenvio = null; }
+    fecharPedido();
+    return d.acao;
+  }
+  let acao;
+  if (j.tipo === 'bot' || (j.local && MODO_AUTO)) {
+    if (!j.local) definirStatus(`Vez de ${j.nome}…`);
+    await esperar(aleatorio(650, 1250));
+    acao = decidirBot(j);
+  } else if (j.local) {
+    Som.suaVez();
+    acao = await pedirAcaoComLimite(j);
+  } else {
+    definirStatus(`Vez de ${j.nome}…`);
+    acao = await acaoRemota(j);
+  }
+  transmitir({ t: 'acao', i: j.indice, acao });
+  return acao;
+}
 async function rodadaDeApostas(inicio) {
   for (const j of jogo.jogadores) { j.agiu = false; j.aumentos = 0; }
   const n = jogo.jogadores.length;
@@ -1752,13 +2404,8 @@ async function rodadaDeApostas(inicio) {
     for (let k = 0; k < n; k++) { const j = jogo.jogadores[(idx + k) % n]; if (precisaAgir(j)) { achou = j; break; } }
     if (!achou) break;
     marcarVez(achou);
-    let acao;
-    if (achou.humano && !MODO_AUTO) { Som.suaVez(); acao = await pedirAcaoHumano(achou); }
-    else {
-      if (!achou.humano) definirStatus(`Vez de ${achou.nome}…`);
-      await esperar(aleatorio(650, 1250));
-      acao = decidirBot(achou);
-    }
+    const acao = await obterAcao(achou);
+    jogo.numAcoes++;
     await executarAcao(achou, acao);
     idx = (achou.indice + 1) % n;
   }
@@ -1818,7 +2465,7 @@ async function showdown() {
       const v = vencedores[0];
       anunciar(`${v.nome} venceu${nomePote} com ${MAOS_COM_ARTIGO[mao.categoria]}!`, true);
       registrar(`${v.nome} levou ${fmt(p.valor)}.`);
-      v.humano ? Som.vitoria() : Som.ficha(3);
+      v.local ? Som.vitoria() : Som.ficha(3);
     } else {
       const nomes = vencedores.map(j => j.nome);
       anunciar(`Empate! ${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]} dividem${nomePote || ' o pote'} com ${MAOS_COM_ARTIGO[mao.categoria]}.`, true);
@@ -1833,13 +2480,14 @@ async function showdown() {
 async function vitoriaSemShowdown() {
   const v = naMao()[0], valor = jogo.pote;
   anunciar(`${v.nome} venceu o pote de ${fmt(valor)}!`, true);
-  v.humano ? Som.vitoria() : Som.ficha(3);
+  v.local ? Som.vitoria() : Som.ficha(3);
   await esperar(500);
   await pagarPremio(v, valor);
   await esperar(1100);
 }
 // Recolhe as cartas e prepara a próxima mão.
 async function limparMesa() {
+  jogo.jogadores.forEach(soltarCartas);
   const todas = jogo.malhasMesa.concat(...jogo.jogadores.map(j => j.malhas));
   await Promise.all(todas.map((m, i) => (async () => {
     await esperar(i * 25);
@@ -1859,8 +2507,9 @@ async function eliminarZerados() {
     if (j.eliminado || j.fichas > 0) continue;
     j.eliminado = true;
     anunciar(`${j.nome} ficou sem fichas e está fora do jogo!`, true);
-    if (j.humano) Som.derrota();
+    if (j.local) { Som.derrota(); mostrarMaosProprias(false); atualizarMinhaMao(); atualizarHUD(); }
     atualizarRotulo(j);
+    if (j.bracos) { removerBracos(j.bracos); j.bracos = null; }
     const p0 = j.avatar.position.clone(), fora = p0.clone().multiplyScalar(1.6);
     await animar(900, k => {
       j.avatar.position.lerpVectors(p0, fora, k);
@@ -1876,10 +2525,21 @@ async function jogarMao() {
   const nivel = Math.floor((jogo.numeroMao - 1) / CONFIG.maosPorNivel);
   jogo.sb = CONFIG.smallBlind * Math.pow(2, nivel); jogo.bb = jogo.sb * 2;
   for (const j of jogo.jogadores) {
-    Object.assign(j, { aposta: 0, total: 0, cartas: [], malhas: [], desistiu: false, allIn: false, agiu: false, aumentos: 0, revelado: false, ultimaAcao: '', mao: null });
+    Object.assign(j, { aposta: 0, total: 0, cartas: [], malhas: [], desistiu: false, allIn: false, agiu: false, aumentos: 0, revelado: false, segurando: false, ultimaAcao: '', mao: null });
   }
   jogo.mesa = []; jogo.pote = 0; jogo.potesInfo = [];
   jogo.apostaAtual = 0; jogo.aumentoMinimo = jogo.bb;
+
+  // On-line: a cada mão o anfitrião confirma as fichas de todos e quem virou bot; o convidado acerta qualquer diferença.
+  if (convidado()) {
+    const d = await entradaDaRede('mao');
+    jogo.jogadores.forEach((j, i) => {
+      if (d.fichas[i] !== undefined && j.fichas !== d.fichas[i]) { j.fichas = d.fichas[i]; montarPilha(j.grupoPilha, j.fichas, true); }
+      if (d.bots.includes(i) && j.tipo !== 'bot') { j.tipo = 'bot'; j.personalidade = j.personalidade || 'equilibrado'; }
+    });
+  } else {
+    transmitir({ t: 'mao', fichas: jogo.jogadores.map(j => j.fichas), bots: jogo.jogadores.filter(j => j.tipo === 'bot').map(j => j.indice) });
+  }
 
   // O botão de dealer anda uma posição; com dois jogadores, o botão é o small blind.
   jogo.botao = proximoVivo(jogo.botao);
@@ -1898,7 +2558,6 @@ async function jogarMao() {
 
   falar('Embaralhando…', 1800);
   await animarEmbaralhar();
-  jogo.baralho = novoBaralho();
 
   // Blinds obrigatórios.
   sb.ultimaAcao = 'Small blind'; bb.ultimaAcao = 'Big blind';
@@ -1907,14 +2566,23 @@ async function jogarMao() {
   jogo.apostaAtual = jogo.bb;
 
   // Duas cartas para cada um, uma por vez, começando à esquerda do botão.
-  falar('Distribuindo as cartas.', 1800);
+  // O anfitrião sorteia; cada convidado só fica sabendo das próprias cartas (as dos outros são "ocultas").
   const ordem = [];
   for (let i = proximoVivo(jogo.botao), k = 0; k < vivos().length; k++, i = proximoVivo(i)) ordem.push(jogo.jogadores[i]);
+  if (convidado()) {
+    const minhas = (await entradaDaRede('cartas')).suas;
+    for (const j of ordem) j.cartas = j.local && minhas ? minhas.map(cartaPorId) : [cartaOculta(), cartaOculta()];
+  } else {
+    jogo.baralho = novoBaralho();
+    for (let r = 0; r < 2; r++) for (const j of ordem) j.cartas.push(jogo.baralho.pop());
+    const porConvidado = {};
+    for (const j of ordem) if (j.idRede) porConvidado[j.idRede] = { suas: j.cartas.map(c => c.id) };
+    transmitir({ t: 'cartas', suas: null }, porConvidado);
+  }
+  falar('Distribuindo as cartas.', 1800);
   const voos = [];
   for (let r = 0; r < 2; r++) for (const j of ordem) {
-    const c = jogo.baralho.pop();
-    j.cartas.push(c);
-    voos.push(distribuirCarta(j, r, c));
+    voos.push(distribuirCarta(j, r, j.cartas[r]));
     await esperar(160);
   }
   await Promise.all(voos);
@@ -1937,66 +2605,199 @@ async function jogarMao() {
   await eliminarZerados();
 }
 async function cicloDoJogo() {
-  while (jogo.ativo) {
+  const g = geracao;
+  while (jogo.ativo && g === geracao) {
     await jogarMao();
-    const humano = jogo.jogadores[0];
-    if (humano.eliminado) return fimDeJogo(false);
-    if (vivos().length === 1) return fimDeJogo(true);
+    if (g !== geracao) return;
+    // Sozinho, o jogo acaba quando você é eliminado; on-line, continua até sobrar um.
+    if (rede.modo === 'solo' && eu().eliminado) return fimDeJogo();
+    if (vivos().length === 1) return fimDeJogo();
+    if (eu().eliminado) definirStatus('Você foi eliminado. Pode continuar assistindo.');
     await esperar(600);
   }
 }
 
 /* =====================================================================
-   16. TELAS: início, regras e fim de jogo
+   17. TELAS: início, sala de espera, regras e fim de jogo
    ===================================================================== */
-let botsEscolhidos = 3;
-function descreverBots() {
-  const nomes = BOTS.slice(0, botsEscolhidos).map(b => `${b.nome} (${PERSONALIDADES[b.personalidade].rotulo.toLowerCase()})`);
-  $('resumo-bots').textContent = 'Na mesa: ' + nomes.join(', ') + '. Todos começam com 1.000 em fichas.';
+let botsEscolhidos = 3, modoInicio = 'solo', telaAtual = 'inicio', aoClicarFim = null;
+const VISUAIS_HUMANOS = [
+  { estilo: 'bone', roupa: 0xd0932b, pele: 0xe6b98f, cabelo: 0x3a2a1c },
+  { estilo: 'bone', roupa: 0x2f8fa3, pele: 0xc68e5e, cabelo: 0x1c1c1c },
+  { estilo: 'bone', roupa: 0xd4633f, pele: 0xf0c8a0, cabelo: 0x7a4a25 },
+  { estilo: 'bone', roupa: 0xc45a8e, pele: 0xd9a476, cabelo: 0x2b1d14 },
+  { estilo: 'bone', roupa: 0xe8e4d8, pele: 0xf2d0b0, cabelo: 0x8a5a2b },
+];
+// Mostra uma tela e esconde as outras. Durante o jogo aparecem a barra, o histórico e o topo.
+function irPara(tela) {
+  telaAtual = tela;
+  $('tela-inicial').classList.toggle('oculto', tela !== 'inicio');
+  $('tela-sala').classList.toggle('oculto', tela !== 'sala');
+  $('tela-fim').classList.toggle('oculto', tela !== 'fim' && tela !== 'fim-sem-jogo');
+  const emJogo = tela === 'jogo' || tela === 'fim';
+  for (const id of ['topo', 'hud-centro', 'historico', 'barra']) $(id).classList.toggle('oculto', !emJogo);
+  $('btn-vel').classList.toggle('oculto', rede.modo !== 'solo');
+  if (tela === 'inicio') { avisoDeQueda = false; $('btn-comecar').disabled = false; }
+  ajustarTela();
 }
-function iniciarJogo() {
-  Som.iniciar();
-  const nome = $('campo-nome').value.trim() || 'Jogador';
-  // Humano no assento 0; os bots seguem no sentido horário.
-  jogo.jogadores = [criarJogador(0, { nome, humano: true }, 90)];
-  const escolhidos = botsEscolhidos === 4 ? BOTS : BOTS.slice().sort(() => Math.random() - 0.5).slice(0, botsEscolhidos);
-  ANGULOS_BOTS[botsEscolhidos].forEach((grau, i) => jogo.jogadores.push(criarJogador(i + 1, escolhidos[i], grau)));
-  Object.assign(jogo, { numeroMao: 0, nivel: 0, pote: 0, mesa: [], potesInfo: [], ativo: true, sb: CONFIG.smallBlind, bb: CONFIG.smallBlind * 2, sbIdx: -1, bbIdx: -1 });
-  jogo.botao = Math.floor(Math.random() * jogo.jogadores.length);
+function mostrarErroInicio(texto) {
+  $('aviso-erro').textContent = texto;
+  $('aviso-erro').classList.toggle('oculto', !texto);
+}
+function sortearBots(qtd) {
+  const indices = BOTS.map((_, i) => i);
+  if (qtd < BOTS.length) indices.sort(() => Math.random() - 0.5);
+  return indices.slice(0, qtd).map(i => ({ nome: BOTS[i].nome, tipo: 'bot', bot: i }));
+}
+function atualizarTelaInicial() {
+  for (const b of document.querySelectorAll('#abas-modo button')) b.setAttribute('aria-pressed', String(b.dataset.modo === modoInicio));
+  $('campo-bots').classList.toggle('oculto', modoInicio !== 'solo');
+  $('campo-codigo').classList.toggle('oculto', modoInicio !== 'entrar');
+  $('btn-comecar').textContent = { solo: 'Sentar à mesa', criar: 'Criar sala', entrar: 'Entrar na sala' }[modoInicio];
+  if (modoInicio === 'solo') {
+    const nomes = BOTS.slice(0, botsEscolhidos).map(b => `${b.nome} (${PERSONALIDADES[b.personalidade].rotulo.toLowerCase()})`);
+    $('resumo-bots').textContent = (botsEscolhidos === 4 ? 'Na mesa: ' + nomes.join(', ') + '. ' : `${botsEscolhidos} adversário${botsEscolhidos > 1 ? 's' : ''} sorteado${botsEscolhidos > 1 ? 's' : ''} entre Bia, Rex, Zeca e Lia. `) + 'Todos começam com 1.000 em fichas.';
+  } else if (modoInicio === 'criar') {
+    $('resumo-bots').textContent = 'Você recebe um código para passar a até 4 amigos. Dá para completar a mesa com bots.';
+  } else {
+    $('resumo-bots').textContent = 'Digite o código de 5 letras e números que o dono da sala passou.';
+  }
+}
+// Monta a mesa para uma partida. "ini" traz os assentos e quem começa com o botão (vem do anfitrião, se on-line).
+function prepararPartida(ini) {
+  limparPartida();
+  meuIndice = Math.max(0, ini.assentos.findIndex(a => a.id === rede.meuId));
+  const n = ini.assentos.length, angulos = ANGULOS_BOTS[n - 1];
+  let humanos = 0;
+  jogo.jogadores = ini.assentos.map((a, i) => {
+    // Cada tela gira a mesa para o próprio jogador ficar em 90°, mantendo a ordem dos assentos.
+    const rel = (i - meuIndice + n) % n;
+    const dados = a.tipo === 'bot'
+      ? { nome: a.nome, tipo: 'bot', personalidade: BOTS[a.bot].personalidade, visual: BOTS[a.bot] }
+      : { nome: a.nome, tipo: 'humano', id: a.id, visual: VISUAIS_HUMANOS[humanos++ % VISUAIS_HUMANOS.length] };
+    return criarJogador(i, dados, rel === 0 ? 90 : angulos[rel - 1]);
+  });
+  Object.assign(jogo, { numeroMao: 0, nivel: 0, pote: 0, mesa: [], potesInfo: [], ativo: true, sb: CONFIG.smallBlind, bb: CONFIG.smallBlind * 2, sbIdx: -1, bbIdx: -1, numAcoes: 0, botao: ini.botao, vez: null });
   historico.length = 0; $('lista-historico').innerHTML = '';
-  $('meu-nome').textContent = nome;
-  for (const id of ['topo', 'hud-centro', 'historico', 'barra']) $(id).classList.remove('oculto');
-  $('tela-inicial').classList.add('oculto');
+  $('meu-nome').textContent = eu().nome;
   fichaBotao.visible = true;
+  mostrarMaosProprias(true);
+  irPara('jogo');
   reiniciarCamera();
-  atualizarTodosRotulos(); atualizarHUD(); atualizarMesaHUD(); atualizarMinhaMao();
-  falar(`Bem-vindo à mesa, ${nome}!`, 2200);
+  atualizarTodosRotulos(); atualizarHUD(); atualizarMesaHUD(); atualizarMinhaMao(); fecharPedido();
+  falar(`Bem-vindo à mesa, ${eu().nome}!`, 2200);
+}
+function iniciarSolo() {
+  geracao++;
+  zerarRede('solo');
+  rede.meuId = 'eu';
+  const assentos = [{ nome: limparNome($('campo-nome').value), tipo: 'humano', id: 'eu' }].concat(sortearBots(botsEscolhidos));
+  prepararPartida({ assentos, botao: Math.floor(Math.random() * assentos.length) });
   cicloDoJogo();
 }
-function fimDeJogo(venceu) {
+function fimDeJogo() {
   jogo.ativo = false;
-  const h = jogo.jogadores[0];
-  $('titulo-fim').textContent = venceu ? 'Você venceu!' : 'Game Over';
-  $('texto-fim').textContent = venceu
-    ? `${h.nome} eliminou todos os adversários em ${jogo.numeroMao} mãos e ficou com ${fmt(h.fichas)} em fichas.`
-    : `${h.nome} ficou sem fichas na mão ${jogo.numeroMao}.`;
+  const h = eu(), campeao = vivos()[0], venceu = campeao === h && !h.eliminado;
+  if (rede.modo === 'solo') {
+    $('titulo-fim').textContent = venceu ? 'Você venceu!' : 'Game Over';
+    $('texto-fim').textContent = venceu
+      ? `${h.nome} eliminou todos os adversários em ${jogo.numeroMao} mãos e ficou com ${fmt(h.fichas)} em fichas.`
+      : `${h.nome} ficou sem fichas na mão ${jogo.numeroMao}.`;
+    $('btn-de-novo').textContent = 'Jogar de novo'; $('btn-de-novo').classList.remove('oculto');
+    $('btn-sair-fim').classList.add('oculto');
+    aoClicarFim = () => { limparPartida(); irPara('inicio'); };
+  } else {
+    const anfitriao = rede.modo === 'anfitriao';
+    $('titulo-fim').textContent = venceu ? 'Você venceu!' : 'Fim da partida';
+    $('texto-fim').textContent = `${campeao.nome} venceu a partida em ${jogo.numeroMao} mãos, com ${fmt(campeao.fichas)} em fichas.`
+      + (anfitriao ? '' : ' Aguardando o anfitrião abrir outra partida.');
+    $('btn-de-novo').textContent = 'Nova partida'; $('btn-de-novo').classList.toggle('oculto', !anfitriao);
+    $('btn-sair-fim').classList.remove('oculto');
+    // O anfitrião volta para a sala de espera, com os mesmos convidados.
+    aoClicarFim = () => { rede.emJogo = false; limparPartida(); enviarSala(); mostrarSala(); irPara('sala'); };
+    if (anfitriao) { rede.emJogo = false; enviarSala(); }
+  }
   if (venceu) Som.vitoria();
-  $('tela-fim').classList.remove('oculto');
+  irPara('fim');
 }
-// Remove tudo da mesa e volta para a tela inicial.
-function jogarDeNovo() {
+// Tira da cena tudo o que pertence a uma partida (também interrompe animações em andamento).
+function limparPartida() {
+  interpolacoes.length = 0;
+  jogo.ativo = false;
   for (const j of jogo.jogadores) {
-    cena.remove(j.avatar, j.grupoPilha, j.grupoAposta);
+    soltarCartas(j);
+    cena.remove(j.avatar, j.grupoPilha, j.grupoAposta, j.leque);
+    if (j.bracos) removerBracos(j.bracos);
     j.malhas.forEach(removerCarta3D);
     j.rotulo.remove();
   }
   jogo.malhasMesa.forEach(removerCarta3D);
-  jogo.jogadores = []; jogo.malhasMesa = [];
+  for (const id in malhaDaCarta) removerCarta3D(malhaDaCarta[id]);       // cartas que estavam no ar
+  for (const o of cena.children.slice()) if (o.userData && o.userData.fichaSolta) cena.remove(o);
+  jogo.jogadores = []; jogo.malhasMesa = []; jogo.mesa = []; jogo.pote = 0; jogo.potesInfo = []; jogo.vez = null;
+  for (const id in miniaturas) delete miniaturas[id];
+  brilhando.clear();
   montarPilha(grupoPote, 0);
   fichaBotao.visible = false; anelVez.visible = false;
-  for (const id of ['topo', 'hud-centro', 'historico', 'barra', 'tela-fim']) $(id).classList.add('oculto');
+  mostrarMaosProprias(false);
+  proprias.E.pos.copy(proprias.E.repouso); proprias.D.pos.copy(proprias.D.repouso);
+  reporDealer();
+  resolverAcao = null; pararContagem();
   $('pote3d').classList.add('oculto');
-  $('tela-inicial').classList.remove('oculto');
+  $('balao').classList.remove('visivel');
+}
+// Sala de espera: lista de quem entrou, código para compartilhar e (para o anfitrião) bots e botão de começar.
+function mostrarSala() {
+  if (rede.modo === 'solo') return;
+  const anfitriao = rede.modo === 'anfitriao';
+  const lista = anfitriao ? [{ id: rede.meuId, nome: rede.nome }].concat(rede.convidados) : (rede.salaInfo ? rede.salaInfo.jogadores : []);
+  const bots = anfitriao ? rede.bots : (rede.salaInfo ? Number(rede.salaInfo.bots) || 0 : 0);
+  $('codigo-sala').textContent = rede.codigo.toUpperCase();
+  $('lista-sala').innerHTML = lista.map((p, i) =>
+    `<li><b>${escapar(limparNome(p.nome))}</b><span>${i === 0 ? 'Anfitrião' : 'Convidado'}${p.id === rede.meuId ? ' · você' : ''}</span></li>`).join('')
+    + (bots ? `<li><b>${bots} bot${bots > 1 ? 's' : ''}</b><span>Completa${bots > 1 ? 'm' : ''} a mesa</span></li>` : '');
+  const naPagina = !!(window.claude && window.claude.use);
+  $('texto-sala').textContent = anfitriao
+    ? (naPagina ? 'Compartilhe esta página com seus amigos (com permissão para interagir) e passe o código. Eles escolhem "Entrar em sala".'
+                : 'Passe o código ou o link para até 4 amigos. Eles abrem o jogo e escolhem "Entrar em sala".')
+    : (rede.naSala ? 'Você está na sala. A partida começa quando o anfitrião der a partida.' : 'Procurando a sala…');
+  $('btn-copiar').textContent = naPagina ? 'Copiar código' : 'Copiar link da sala';
+  $('campo-bots-sala').classList.toggle('oculto', !anfitriao);
+  $('btn-iniciar-sala').classList.toggle('oculto', !anfitriao);
+  if (anfitriao) {
+    for (const b of document.querySelectorAll('#escolha-bots-sala button')) {
+      const q = Number(b.dataset.bots);
+      b.disabled = q > 4 - rede.convidados.length;
+      b.setAttribute('aria-pressed', String(q === rede.bots));
+    }
+    const total = lista.length + bots;
+    $('btn-iniciar-sala').disabled = total < 2;
+    $('aviso-sala').textContent = total < 2 ? 'Espere alguém entrar ou adicione bots para começar.' : `${total} jogadores na mesa.`;
+  } else $('aviso-sala').textContent = '';
+}
+async function aoEnviarInicio() {
+  Som.iniciar();
+  mostrarErroInicio('');
+  const nome = limparNome($('campo-nome').value);
+  if (modoInicio === 'solo') return iniciarSolo();
+  const codigo = $('campo-sala').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (modoInicio === 'entrar' && codigo.length < 4) return mostrarErroInicio('Digite o código da sala.');
+  $('btn-comecar').disabled = true; $('btn-comecar').textContent = 'Conectando…';
+  try {
+    if (modoInicio === 'criar') await criarSala(nome); else await entrarEmSala(nome, codigo);
+  } catch (e) {
+    zerarRede('solo');
+    mostrarErroInicio(textoDoErroDeRede(e));
+  }
+  $('btn-comecar').disabled = false;
+  atualizarTelaInicial();
+}
+function copiarDaSala() {
+  const naPagina = !!(window.claude && window.claude.use);
+  const texto = naPagina ? rede.codigo.toUpperCase() : location.href.split('#')[0] + '#sala-' + rede.codigo;
+  const feito = () => { $('btn-copiar').textContent = 'Copiado'; setTimeout(mostrarSala, 1500); };
+  const selecionar = () => { const r = document.createRange(); r.selectNodeContents($('codigo-sala')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+  try { navigator.clipboard.writeText(texto).then(feito, selecionar); } catch (_) { selecionar(); }
 }
 function montarPainelRegras() {
   // [nome, descrição, cartas do exemplo (valor, naipe), quantas cartas formam a combinação]
@@ -2019,15 +2820,25 @@ function montarPainelRegras() {
   $('legenda-fichas').innerHTML = DENOMINACOES.slice().reverse().map(d => `<span><i style="background:${d.cor};border-color:${d.detalhe}"></i>${d.nome} = ${d.valor}</span>`).join('');
 }
 function ligarInterface() {
+  for (const b of document.querySelectorAll('#abas-modo button')) b.onclick = () => { modoInicio = b.dataset.modo; mostrarErroInicio(''); atualizarTelaInicial(); };
   for (const b of document.querySelectorAll('#escolha-bots button')) {
     b.onclick = () => {
       botsEscolhidos = Number(b.dataset.bots);
       for (const o of document.querySelectorAll('#escolha-bots button')) o.setAttribute('aria-pressed', String(o === b));
-      descreverBots();
+      atualizarTelaInicial();
     };
   }
-  descreverBots();
-  $('form-inicio').addEventListener('submit', e => { e.preventDefault(); iniciarJogo(); });
+  for (const b of document.querySelectorAll('#escolha-bots-sala button')) {
+    b.onclick = () => { rede.bots = Number(b.dataset.bots); enviarSala(); mostrarSala(); };
+  }
+  // Um link com #sala-CODIGO já abre na aba "Entrar em sala" com o código preenchido.
+  const daUrl = /^#sala-([a-z0-9]{4,8})$/i.exec(location.hash || '');
+  if (daUrl) { modoInicio = 'entrar'; $('campo-sala').value = daUrl[1].toUpperCase(); }
+  atualizarTelaInicial();
+  $('form-inicio').addEventListener('submit', e => { e.preventDefault(); aoEnviarInicio(); });
+  $('btn-iniciar-sala').onclick = comecarPartidaOnline;
+  $('btn-sair-sala').onclick = sairDaSala;
+  $('btn-copiar').onclick = copiarDaSala;
   $('btn-regras').onclick = () => $('painel-regras').classList.remove('oculto');
   $('btn-fechar-regras').onclick = () => $('painel-regras').classList.add('oculto');
   $('painel-regras').addEventListener('click', e => { if (e.target === $('painel-regras')) $('painel-regras').classList.add('oculto'); });
@@ -2035,13 +2846,14 @@ function ligarInterface() {
   $('btn-vel').onclick = () => { velocidadeBase = velocidadeBase >= 3 ? 1 : velocidadeBase + 1; $('btn-vel').textContent = velocidadeBase + '×'; };
   $('btn-vel').textContent = velocidadeBase + '×';
   $('btn-cam').onclick = reiniciarCamera;
-  $('btn-de-novo').onclick = jogarDeNovo;
+  $('btn-de-novo').onclick = () => { if (aoClicarFim) aoClicarFim(); };
+  $('btn-sair-fim').onclick = sairDaSala;
   ligarBarra();
   montarPainelRegras();
 }
 
 /* =====================================================================
-   17. MONTAGEM E LAÇO PRINCIPAL
+   18. MONTAGEM E LAÇO PRINCIPAL
    ===================================================================== */
 function montarPecasDaMesa() {
   prepararPecas();
@@ -2058,16 +2870,21 @@ function montarPecasDaMesa() {
   anelVez.rotation.x = -Math.PI / 2; anelVez.visible = false; cena.add(anelVez);
   grupoPote = new THREE.Group(); grupoPote.position.copy(POS.pote); cena.add(grupoPote);
 }
+// Velocidade das animações: sozinho, acelera quando você já desistiu; como convidado, acelera para alcançar o anfitrião.
+function velocidadeAtual() {
+  const h = eu();
+  if (rede.modo === 'solo') return velocidadeBase * (jogo.ativo && h && (h.desistiu || h.eliminado) ? 1.7 : 1);
+  if (rede.modo === 'convidado') return velocidadeBase * (1 + Math.min(3, rede.fila.length * 0.7));
+  return velocidadeBase;
+}
 let ultimoQuadro = performance.now(), relogio = 0;
 function quadro(agora) {
   requestAnimationFrame(quadro);
   const dt = Math.min(0.05, (agora - ultimoQuadro) / 1000);
   ultimoQuadro = agora; relogio += dt;
-  // Quando o humano já desistiu, o resto da mão anda mais rápido.
-  const h = jogo.jogadores[0];
-  const vel = velocidadeBase * (jogo.ativo && h && (h.desistiu || h.eliminado) ? 1.7 : 1);
-  atualizarInterpolacoes(dt * 1000 * vel);
+  atualizarInterpolacoes(dt * 1000 * velocidadeAtual());
   atualizarDealer(relogio, dt);
+  atualizarJogadores3D(relogio, dt);
   const pulso = 0.55 + 0.45 * Math.sin(relogio * 7);
   for (const m of brilhando) { m.userData.brilho.material.opacity = 0.55 + 0.45 * pulso; m.userData.face.emissiveIntensity = 0.1 + 0.22 * pulso; }
   if (anelVez.visible) anelVez.material.opacity = 0.45 + 0.4 * pulso;
@@ -2075,10 +2892,19 @@ function quadro(agora) {
   atualizarProjecoes(agora);
   renderer.render(cena, camera);
 }
+// On-line, o jogo não pode parar quando a aba fica em segundo plano (o navegador pausa os quadros):
+// um temporizador continua avançando as animações, sem desenhar.
+setInterval(() => {
+  if (!document.hidden || rede.modo === 'solo') return;
+  const agora = performance.now(), dt = Math.min(1, (agora - ultimoQuadro) / 1000);
+  ultimoQuadro = agora;
+  atualizarInterpolacoes(dt * 1000 * velocidadeAtual());
+}, 250);
 
 montarAmbiente();
 montarPecasDaMesa();
 criarDealer();
+criarMaosProprias();
 const rotuloJuiz = document.createElement('div');
 rotuloJuiz.className = 'rotulo juiz'; rotuloJuiz.textContent = 'Juiz';
 $('rotulos').insertBefore(rotuloJuiz, $('rotulos').firstChild);
@@ -2086,14 +2912,15 @@ rotulosFixos.push({ el: rotuloJuiz, pos: V3(0, 1.72, -(MESA.b + 0.78)) });
 ligarControlesCamera();
 ligarInterface();
 ajustarTela(); reiniciarCamera();
+const reajustar = () => { const padrao = visao.pitch === visao.pitchPadrao; ajustarTela(); if (padrao) visao.pitch = visao.pitchPadrao; };
 // A barra de ações muda de altura: o histórico do celular fica logo acima dela e a visão se recentra.
 if (window.ResizeObserver) {
   new ResizeObserver(() => {
     document.documentElement.style.setProperty('--altura-barra', $('barra').offsetHeight + 'px');
-    const padrao = visao.pitch === visao.pitchPadrao; ajustarTela(); if (padrao) visao.pitch = visao.pitchPadrao;
+    reajustar();
   }).observe($('barra'));
 }
-addEventListener('resize', () => { const padrao = visao.pitch === visao.pitchPadrao; ajustarTela(); if (padrao) visao.pitch = visao.pitchPadrao; });
+addEventListener('resize', reajustar);
 // As cartas usam a fonte da página: quando ela termina de carregar, as cartas são redesenhadas.
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
@@ -2103,9 +2930,12 @@ if (document.fonts && document.fonts.ready) {
 }
 requestAnimationFrame(quadro);
 
-// Acesso para depuração pelo console.
-window.__poker = { jogo, Som, melhorMao, estimarForca, calcularPotes, carta };
-if (PARAMS.has('bots')) { botsEscolhidos = limitar(Number(PARAMS.get('bots')) || 3, 1, 4); iniciarJogo(); }
+// Acesso para depuração pelo console e atalhos de teste pela URL.
+window.__poker = { jogo, rede, Som, melhorMao, estimarForca, calcularPotes, carta };
+if (PARAMS.has('nome')) $('campo-nome').value = PARAMS.get('nome');
+if (PARAMS.has('criar')) criarSala(limparNome($('campo-nome').value), PARAMS.get('criar') || null).catch(e => mostrarErroInicio(textoDoErroDeRede(e)));
+else if (PARAMS.has('entrar')) entrarEmSala(limparNome($('campo-nome').value), PARAMS.get('entrar')).catch(e => mostrarErroInicio(textoDoErroDeRede(e)));
+else if (PARAMS.has('bots')) { botsEscolhidos = limitar(Number(PARAMS.get('bots')) || 3, 1, 4); iniciarSolo(); }
 })();
 </script>
 </body>
