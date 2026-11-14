@@ -128,3 +128,9 @@ Com Docker: `docker build -t truco .` e `docker run -p 3001:3001 -v truco-dados:
 
 Para muitos jogadores, troque o SQLite por PostgreSQL: mude o `provider` em `apps/server/prisma/schema.prisma`
 e a `DATABASE_URL`. As salas ficam na memória do servidor, então use uma única instância.
+
+## Poker 3D (Texas Hold'em)
+
+`poker-3d.html` é um jogo à parte, em um único arquivo: abra direto no navegador (precisa de internet só para
+carregar o Three.js). Você joga Texas Hold'em em primeira pessoa contra 1 a 4 bots, com um juiz 3D que embaralha, distribui e anuncia
+as jogadas, fichas por valor, potes paralelos, blinds que dobram a cada 10 mãos e sons feitos com Web Audio.

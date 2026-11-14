@@ -1,0 +1,2112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Poker 3D Texas Hold'em</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Limelight&display=swap">
+<style>
+/* Layout: a mesa 3D ocupa a tela inteira; o HUD fica em painéis escuros com filete de latão nas bordas. */
+:root {
+  --noite: #060d0a;
+  --painel: rgba(8, 19, 14, .88);
+  --painel-claro: rgba(24, 44, 34, .94);
+  --feltro: #1d7a4a;
+  --latao: #e0b663;
+  --latao-escuro: #8f6a2a;
+  --marfim: #f4ecd8;
+  --apagado: #a3b5a8;
+  --rubi: #c9343f;
+  --azul: #2f62d0;
+  --tinta: #14110a;
+  --filete: rgba(224, 182, 99, .34);
+  --fonte-titulo: 'Limelight', Georgia, 'Times New Roman', serif;
+  --fonte-ui: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --lado-e: max(16px, env(safe-area-inset-left, 0px));
+  --lado-d: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+body {
+  background: var(--noite); color: var(--marfim);
+  font-family: var(--fonte-ui); font-size: 15px; font-weight: 500;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--latao); outline-offset: 2px; }
+.oculto { display: none !important; }
+
+/* ---------- Cena 3D ---------- */
+#cena { position: fixed; inset: 0; }
+#cena canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#cena canvas:active { cursor: grabbing; }
+#vinheta { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0, 0, 0, .62) 100%); }
+
+/* ---------- Rótulos projetados sobre a cena ---------- */
+#rotulos { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.rotulo {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -100%);
+  padding: 4px 10px 5px; border-radius: 10px; text-align: center; white-space: nowrap;
+  background: var(--painel); border: 1px solid var(--filete); line-height: 1.2;
+  transition: box-shadow .2s, border-color .2s, opacity .3s;
+}
+.rotulo .nome { font-weight: 700; font-size: 14px; }
+.rotulo .perfil { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--apagado); }
+.rotulo .fichas { font-weight: 700; color: var(--latao); font-variant-numeric: tabular-nums; }
+.rotulo .acao { font-size: 12px; color: var(--marfim); min-height: 0; }
+.marca {
+  display: inline-block; min-width: 18px; padding: 0 4px; margin-left: 4px; border-radius: 9px;
+  font-size: 10px; font-weight: 700; background: var(--marfim); color: var(--tinta); vertical-align: 1px;
+}
+.marca.blind { background: var(--azul); color: var(--marfim); }
+.rotulo.vez { border-color: var(--latao); box-shadow: 0 0 0 2px var(--latao), 0 0 22px rgba(224, 182, 99, .6); }
+.rotulo.fora { opacity: .55; }
+.rotulo.eliminado { border-color: var(--rubi); }
+.rotulo.eliminado .fichas { color: var(--rubi); letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+.rotulo.juiz { padding: 2px 9px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--latao); }
+#pote3d {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -100%);
+  padding: 3px 12px; border-radius: 999px; background: rgba(0, 0, 0, .62); border: 1px solid var(--filete);
+  font-weight: 700; font-size: 17px; color: var(--latao); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+#pote3d small { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--apagado); margin-right: 4px; }
+#balao {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -100%) scale(.6); opacity: 0;
+  max-width: min(280px, 72vw); padding: 9px 14px; border-radius: 14px; text-align: center;
+  background: var(--marfim); color: var(--tinta); font-weight: 700; font-size: 15px; line-height: 1.25;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .5); transition: opacity .18s, transform .18s; transform-origin: 50% 100%;
+}
+#balao::after {
+  content: ""; position: absolute; left: 50%; bottom: -9px; margin-left: -9px;
+  border: 9px solid transparent; border-top-color: var(--marfim); border-bottom: 0;
+}
+#balao.visivel { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+
+/* ---------- Barra superior ---------- */
+#topo {
+  position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) var(--lado-d) 8px var(--lado-e);
+  background: linear-gradient(rgba(0, 0, 0, .6), transparent); pointer-events: none;
+}
+#topo > * { pointer-events: auto; }
+#info-mao { font-weight: 700; margin-right: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#info-mao small { display: block; font-weight: 500; font-size: 12px; color: var(--apagado); }
+.btn-topo {
+  min-height: 36px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--filete);
+  background: var(--painel); font-weight: 600; font-size: 13px; white-space: nowrap;
+}
+.btn-topo:hover { border-color: var(--latao); }
+.btn-topo[aria-pressed="false"] { color: var(--apagado); text-decoration: line-through; }
+
+/* ---------- Pote e cartas comunitárias (HUD central) ---------- */
+#hud-centro {
+  display: none; position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+  flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
+  padding: 8px 14px 10px; border-radius: 14px; background: var(--painel); border: 1px solid var(--filete);
+}
+#hud-pote { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--apagado); white-space: nowrap; }
+#hud-pote b { font-size: 20px; letter-spacing: 0; color: var(--latao); margin-left: 6px; font-variant-numeric: tabular-nums; }
+#hud-paralelos { font-size: 11px; color: var(--apagado); text-align: center; }
+#hud-mesa { display: flex; gap: 5px; }
+.carta-mini {
+  width: 36px; aspect-ratio: 5 / 7; border-radius: 4px; background: rgba(255, 255, 255, .06);
+  border: 1px dashed rgba(244, 236, 216, .22); overflow: hidden; transition: transform .25s, box-shadow .25s, opacity .25s;
+}
+.carta-mini img { display: block; width: 100%; height: 100%; }
+.carta-mini.cheia { border: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
+.carta-mini.vencedora { transform: translateY(-4px); box-shadow: 0 0 0 2px var(--latao), 0 0 16px 3px rgba(224, 182, 99, .85); }
+.carta-mini.apagada { opacity: .38; }
+
+/* ---------- Histórico ---------- */
+#historico {
+  position: fixed; left: var(--lado-e); bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  width: calc((100vw - 820px) / 2 - 30px); max-height: 200px;
+  padding: 8px 10px; border-radius: 12px; background: var(--painel); border: 1px solid var(--filete);
+  overflow: hidden; display: flex; flex-direction: column; pointer-events: none;
+}
+#historico h2 { margin: 0 0 4px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--apagado); font-weight: 600; }
+#lista-historico { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; overflow: hidden; font-size: 12.5px; line-height: 1.3; }
+#lista-historico li { opacity: .62; overflow-wrap: anywhere; }
+#lista-historico li:last-child { opacity: 1; color: var(--marfim); font-weight: 600; }
+#lista-historico li.destaque { color: var(--latao); opacity: 1; }
+
+/* ---------- Barra de ações ---------- */
+#barra {
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(820px, 100%);
+  display: grid; grid-template-columns: auto 1fr; grid-template-areas: "mao atalhos" "mao slider" "mao botoes";
+  gap: 8px 14px; align-items: center;
+  padding: 10px var(--lado-d) calc(10px + env(safe-area-inset-bottom, 0px)) var(--lado-e);
+  background: var(--painel); border: 1px solid var(--filete); border-bottom: 0; border-radius: 16px 16px 0 0;
+}
+#minha-mao { grid-area: mao; display: flex; align-items: center; gap: 10px; min-width: 0; }
+#minhas-cartas { display: flex; gap: 5px; }
+#minhas-cartas .carta-mini { width: 62px; border-radius: 6px; }
+#meu-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; line-height: 1.2; }
+#linha-nome { display: flex; align-items: center; min-width: 0; }
+#meu-nome { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+#minhas-fichas { color: var(--latao); font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+#minha-jogada { font-size: 12px; color: var(--apagado); }
+#status { font-size: 12px; font-weight: 700; color: var(--latao); }
+#atalhos { grid-area: atalhos; display: flex; gap: 6px; }
+#atalhos button {
+  flex: 1; min-height: 32px; border-radius: 8px; border: 1px solid var(--filete); background: transparent;
+  font-size: 12px; font-weight: 600; white-space: nowrap; padding: 0 4px;
+}
+#linha-slider { grid-area: slider; display: flex; align-items: center; gap: 8px; }
+#linha-slider button { width: 38px; height: 34px; flex: none; border-radius: 8px; border: 1px solid var(--filete); background: transparent; font-size: 20px; font-weight: 700; line-height: 1; }
+#slider { flex: 1; min-width: 0; height: 34px; accent-color: var(--latao); }
+#valor-aumento { min-width: 62px; text-align: right; font-weight: 700; font-size: 18px; color: var(--latao); font-variant-numeric: tabular-nums; }
+#linha-botoes { grid-area: botoes; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.acao {
+  min-height: 56px; padding: 4px 6px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .16);
+  font-weight: 700; font-size: 16px; line-height: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .28); transition: transform .08s, filter .15s, opacity .15s;
+}
+.acao small { font-size: 11px; font-weight: 600; opacity: .85; font-variant-numeric: tabular-nums; }
+.acao:active { transform: translateY(2px); }
+.acao.fold { background: var(--rubi); color: var(--marfim); }
+.acao.call { background: var(--feltro); color: var(--marfim); }
+.acao.raise { background: var(--latao); color: var(--tinta); }
+.acao.allin { background: var(--tinta); color: var(--latao); border-color: var(--latao); }
+#barra button:disabled { opacity: .32; cursor: default; filter: saturate(.4); }
+#barra.espera #atalhos, #barra.espera #linha-slider { opacity: .4; }
+
+/* ---------- Telas (início, regras, fim) ---------- */
+.tela {
+  position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) var(--lado-d) calc(16px + env(safe-area-inset-bottom, 0px)) var(--lado-e);
+  background: rgba(3, 8, 6, .74); overflow-y: auto;
+}
+.cartao {
+  width: min(430px, 100%); margin: auto; padding: 26px 24px 24px; border-radius: 18px;
+  background: var(--painel-claro); border: 1px solid var(--latao-escuro);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .6); display: flex; flex-direction: column; gap: 16px;
+}
+.cartao h1 { margin: 0; font-family: var(--fonte-titulo); font-weight: 400; font-size: 38px; line-height: 1.05; color: var(--latao); text-align: center; text-wrap: balance; }
+.cartao h1 small { display: block; font-family: var(--fonte-ui); font-size: 13px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--marfim); margin-top: 8px; }
+.cartao p { margin: 0; line-height: 1.45; color: var(--apagado); text-align: center; }
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo label, .campo .legenda { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--apagado); font-weight: 600; }
+.campo input[type="text"] {
+  height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--filete);
+  background: rgba(0, 0, 0, .35); font-size: 17px; font-weight: 600; -webkit-user-select: text; user-select: text;
+}
+#escolha-bots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#escolha-bots button { height: 48px; border-radius: 10px; border: 1px solid var(--filete); background: rgba(0, 0, 0, .35); font-size: 18px; font-weight: 700; }
+#escolha-bots button[aria-pressed="true"] { background: var(--latao); color: var(--tinta); border-color: var(--latao); }
+#resumo-bots { font-size: 13px; min-height: 2.9em; }
+.btn-principal {
+  min-height: 54px; border-radius: 12px; border: 0; background: var(--latao); color: var(--tinta);
+  font-size: 18px; font-weight: 700; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .25);
+}
+.btn-principal:active { transform: translateY(2px); }
+#aviso-erro { color: var(--rubi); font-weight: 600; }
+
+#painel-regras .cartao { width: min(620px, 100%); padding: 20px 20px 22px; gap: 14px; }
+#painel-regras h1 { font-size: 28px; }
+#painel-regras h2 { margin: 6px 0 0; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--latao); }
+#painel-regras ul { margin: 0; padding-left: 18px; color: var(--marfim); line-height: 1.5; font-size: 14px; }
+#ranking { display: flex; flex-direction: column; gap: 6px; }
+.linha-ranking { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; background: rgba(0, 0, 0, .28); }
+.linha-ranking .pos { font-weight: 700; color: var(--latao); text-align: center; font-variant-numeric: tabular-nums; }
+.linha-ranking .txt { min-width: 0; }
+.linha-ranking .txt b { display: block; }
+.linha-ranking .txt span { font-size: 12px; color: var(--apagado); }
+.linha-ranking .exemplo { display: flex; gap: 3px; }
+.linha-ranking .carta-mini { width: 30px; border-radius: 3px; }
+#legenda-fichas { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+#legenda-fichas span { display: inline-flex; align-items: center; gap: 6px; }
+#legenda-fichas i { width: 16px; height: 16px; border-radius: 50%; border: 2px dashed rgba(255, 255, 255, .75); }
+
+/* ---------- Celular ---------- */
+@media (max-width: 1180px) {
+  #historico { bottom: auto; top: calc(56px + env(safe-area-inset-top, 0px)); width: 200px; max-height: 96px; opacity: .92; }
+  #historico h2 { display: none; }
+}
+@media (max-width: 720px) and (orientation: portrait) {
+  /* Celular em pé: as cartas 3D ficam pequenas, então o pote e a mesa aparecem também em 2D no alto. */
+  #hud-centro { display: flex; top: calc(50px + env(safe-area-inset-top, 0px)); padding: 6px 10px 8px; }
+  #pote3d { display: none; }
+  .carta-mini { width: 32px; }
+  #barra { grid-template-columns: 1fr; grid-template-areas: "mao" "atalhos" "slider" "botoes"; gap: 6px; border-radius: 14px 14px 0 0; border-left: 0; border-right: 0; }
+  #minhas-cartas .carta-mini { width: 46px; }
+  #meu-info { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+  #minhas-fichas { font-size: 16px; }
+  .acao { min-height: 54px; font-size: 15px; }
+  #historico { width: 150px; max-height: 66px; top: auto; bottom: calc(var(--altura-barra, 230px) + 8px); padding: 6px 8px; }
+  #lista-historico { font-size: 11px; }
+}
+@media (max-width: 720px) {
+  body { font-size: 14px; }
+  .btn-topo { padding: 0 9px; font-size: 12px; }
+  .rotulo { padding: 3px 7px 4px; }
+  .rotulo .nome { font-size: 12px; }
+  .rotulo .perfil { display: none; }
+  .rotulo .fichas, .rotulo .acao { font-size: 11px; }
+  .cartao h1 { font-size: 32px; }
+  .linha-ranking .carta-mini { width: 24px; }
+  .linha-ranking { gap: 8px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  /* Celular deitado: barra compacta para sobrar mesa. */
+  #barra { gap: 5px 12px; padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+  #minhas-cartas .carta-mini { width: 48px; }
+  #atalhos button { min-height: 26px; }
+  #linha-slider button, #slider { height: 28px; }
+  .acao { min-height: 42px; font-size: 14px; }
+  .acao small { font-size: 10px; }
+  #historico { max-height: 62px; width: 180px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- Cena 3D e camadas projetadas sobre ela -->
+<div id="cena"></div>
+<div id="vinheta"></div>
+<div id="rotulos">
+  <div id="pote3d" class="oculto"></div>
+  <div id="balao" role="status" aria-live="polite"></div>
+</div>
+
+<!-- Barra superior -->
+<div id="topo" class="oculto">
+  <div id="info-mao">Mão 1<small>Blinds 10/20</small></div>
+  <button id="btn-regras" class="btn-topo" type="button">Regras</button>
+  <button id="btn-som" class="btn-topo" type="button" aria-pressed="true">Som</button>
+  <button id="btn-vel" class="btn-topo" type="button" title="Velocidade do jogo">1×</button>
+  <button id="btn-cam" class="btn-topo" type="button" title="Voltar o olhar para a frente">Câmera</button>
+</div>
+
+<!-- Pote e cartas comunitárias -->
+<div id="hud-centro" class="oculto">
+  <div id="hud-pote">Pote<b id="valor-pote">0</b></div>
+  <div id="hud-mesa"></div>
+  <div id="hud-paralelos" class="oculto"></div>
+</div>
+
+<!-- Histórico das últimas jogadas -->
+<div id="historico" class="oculto">
+  <h2>Últimas jogadas</h2>
+  <ul id="lista-historico"></ul>
+</div>
+
+<!-- Barra de ações do jogador -->
+<div id="barra" class="oculto espera">
+  <div id="minha-mao">
+    <div id="minhas-cartas"></div>
+    <div id="meu-info">
+      <span id="linha-nome"><span id="meu-nome"></span><span id="minha-posicao"></span></span>
+      <span id="minhas-fichas"></span>
+      <span id="minha-jogada"></span>
+      <span id="status"></span>
+    </div>
+  </div>
+  <div id="atalhos">
+    <button type="button" data-atalho="min">Mínimo</button>
+    <button type="button" data-atalho="meio">½ pote</button>
+    <button type="button" data-atalho="pote">Pote</button>
+    <button type="button" data-atalho="max">Máximo</button>
+  </div>
+  <div id="linha-slider">
+    <button id="btn-menos" type="button" aria-label="Diminuir valor">−</button>
+    <input id="slider" type="range" min="0" max="100" step="5" value="0" aria-label="Valor do aumento">
+    <button id="btn-mais" type="button" aria-label="Aumentar valor">+</button>
+    <output id="valor-aumento" for="slider">0</output>
+  </div>
+  <div id="linha-botoes">
+    <button id="btn-fold" class="acao fold" type="button"><span>Desistir</span><small>Fold</small></button>
+    <button id="btn-call" class="acao call" type="button"><span id="txt-call">Passar</span><small id="sub-call">Check</small></button>
+    <button id="btn-raise" class="acao raise" type="button"><span id="txt-raise">Aumentar</span><small id="sub-raise">Raise</small></button>
+    <button id="btn-allin" class="acao allin" type="button"><span>All-in</span><small id="sub-allin">0</small></button>
+  </div>
+</div>
+
+<!-- Tela inicial -->
+<div id="tela-inicial" class="tela">
+  <form class="cartao" id="form-inicio" autocomplete="off">
+    <h1>Poker 3D<small>Texas Hold'em</small></h1>
+    <div class="campo">
+      <label for="campo-nome">Seu nome</label>
+      <input id="campo-nome" type="text" maxlength="14" value="Você" placeholder="Digite seu nome">
+    </div>
+    <div class="campo">
+      <span class="legenda">Adversários (bots)</span>
+      <div id="escolha-bots">
+        <button type="button" data-bots="1" aria-pressed="false">1</button>
+        <button type="button" data-bots="2" aria-pressed="false">2</button>
+        <button type="button" data-bots="3" aria-pressed="true">3</button>
+        <button type="button" data-bots="4" aria-pressed="false">4</button>
+      </div>
+    </div>
+    <p id="resumo-bots"></p>
+    <p id="aviso-erro" class="oculto"></p>
+    <button class="btn-principal" id="btn-comecar" type="submit">Sentar à mesa</button>
+  </form>
+</div>
+
+<!-- Painel de regras -->
+<div id="painel-regras" class="tela oculto">
+  <div class="cartao">
+    <h1>Regras</h1>
+    <h2>Ranking das mãos, da maior para a menor</h2>
+    <div id="ranking"></div>
+    <h2>Como funciona</h2>
+    <ul>
+      <li>Cada jogador recebe 2 cartas fechadas. Vence a melhor combinação de 5 cartas entre as suas 2 e as 5 da mesa.</li>
+      <li>Rodadas de aposta: pré-flop, flop (3 cartas), turn (4ª carta) e river (5ª carta).</li>
+      <li>Small blind 10 e big blind 20. Os blinds dobram a cada 10 mãos.</li>
+      <li>Empate divide o pote. Quem vai all-in só disputa o que conseguiu cobrir; o resto vira pote paralelo.</li>
+      <li>Quem fica sem fichas é eliminado. O último com fichas vence.</li>
+      <li>Você vê a mesa em primeira pessoa. Arraste para olhar em volta e use a roda do mouse ou dois dedos para aproximar.</li>
+    </ul>
+    <h2>Valor das fichas</h2>
+    <div id="legenda-fichas"></div>
+    <button class="btn-principal" id="btn-fechar-regras" type="button">Voltar ao jogo</button>
+  </div>
+</div>
+
+<!-- Fim de jogo -->
+<div id="tela-fim" class="tela oculto">
+  <div class="cartao">
+    <h1 id="titulo-fim">Game Over</h1>
+    <p id="texto-fim"></p>
+    <button class="btn-principal" id="btn-de-novo" type="button">Jogar de novo</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   1. CONFIGURAÇÃO E CONSTANTES
+   ===================================================================== */
+const CONFIG = { fichasIniciais: 1000, smallBlind: 10, maosPorNivel: 10 };
+
+// Opções de depuração pela URL: ?auto faz o humano jogar sozinho, ?vel=4 acelera, ?bots=4 inicia direto.
+const PARAMS = new URLSearchParams(location.search);
+const MODO_AUTO = PARAMS.has('auto');
+
+const NAIPES = ['espadas', 'copas', 'ouros', 'paus'];
+const NOME_VALOR = { 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+const NOMES_MAOS = ['Carta Alta', 'Um Par', 'Dois Pares', 'Trinca', 'Sequência', 'Flush', 'Full House', 'Quadra', 'Straight Flush', 'Royal Flush'];
+const MAOS_COM_ARTIGO = ['Carta Alta', 'Um Par', 'Dois Pares', 'uma Trinca', 'uma Sequência', 'um Flush', 'um Full House', 'uma Quadra', 'um Straight Flush', 'um Royal Flush'];
+
+// Fichas por valor: branca = 5, vermelha = 25, azul = 50, verde = 100, preta = 500.
+const DENOMINACOES = [
+  { valor: 500, nome: 'Preta', cor: '#17171b', detalhe: '#e0b663' },
+  { valor: 100, nome: 'Verde', cor: '#1f8f4d', detalhe: '#ffffff' },
+  { valor: 50, nome: 'Azul', cor: '#2456c9', detalhe: '#ffffff' },
+  { valor: 25, nome: 'Vermelha', cor: '#c8323c', detalhe: '#ffffff' },
+  { valor: 5, nome: 'Branca', cor: '#f2efe6', detalhe: '#2456c9' },
+];
+
+// Personalidades dos bots. Os limiares usam a força da mão (0 a 1) estimada por simulação.
+const PERSONALIDADES = {
+  cauteloso:   { rotulo: 'Cautelosa',   entrada: 0.56, aumentoPre: 0.67, apostar: 0.68, reaumentar: 0.84, margem: 0.08,  blefe: 0.02, agress: 0.55, tamanho: 0.5 },
+  agressivo:   { rotulo: 'Agressivo',   entrada: 0.44, aumentoPre: 0.56, apostar: 0.52, reaumentar: 0.69, margem: -0.04, blefe: 0.10, agress: 0.92, tamanho: 0.85 },
+  blefador:    { rotulo: 'Blefador',    entrada: 0.46, aumentoPre: 0.60, apostar: 0.58, reaumentar: 0.75, margem: 0.0,   blefe: 0.30, agress: 0.75, tamanho: 0.75 },
+  equilibrado: { rotulo: 'Equilibrada', entrada: 0.50, aumentoPre: 0.62, apostar: 0.60, reaumentar: 0.77, margem: 0.03,  blefe: 0.07, agress: 0.75, tamanho: 0.62 },
+};
+const BOTS = [
+  { nome: 'Bia',  personalidade: 'cauteloso',   estilo: 'coque',   roupa: 0x3b6fb5, pele: 0xf0c8a0, cabelo: 0x5a3a22 },
+  { nome: 'Rex',  personalidade: 'agressivo',   estilo: 'moicano', roupa: 0xb5302f, pele: 0xd9a476, cabelo: 0x16161a },
+  { nome: 'Zeca', personalidade: 'blefador',    estilo: 'chapeu',  roupa: 0x6b3fa0, pele: 0xc68e5e, cabelo: 0x222222 },
+  { nome: 'Lia',  personalidade: 'equilibrado', estilo: 'longo',   roupa: 0x2f9d78, pele: 0xf2d0b0, cabelo: 0xb5651d },
+];
+
+// Medidas da cena (o tampo da mesa fica em y = 0).
+const MESA = { a: 3.3, b: 1.95 };              // semieixos do feltro oval
+const CARTA = { l: 0.36, a: 0.5, e: 0.006 };   // largura, altura, espessura
+const FICHA = { r: 0.07, h: 0.021 };
+const CHAO = -1.6;
+const ESCALA_AVATAR = 1.4;
+const INCLINACAO_HUMANO = 1.0;                 // as cartas do humano ficam em pé, viradas para os olhos dele
+const INCLINACAO_MESA = 0.6;                   // cartas abertas na mesa ficam inclinadas para serem lidas do assento
+// Ângulos dos assentos dos bots. O humano fica em 90° (onde está a câmera) e o juiz em 270°, de frente para ele.
+// Os bots ficam todos do lado de lá da mesa, dentro do campo de visão.
+const ANGULOS_BOTS = { 1: [236], 2: [228, 312], 3: [200, 236, 312], 4: [200, 236, 304, 340] };
+
+/* =====================================================================
+   2. UTILIDADES
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('pt-BR');
+const aleatorio = (a, b) => a + Math.random() * (b - a);
+const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
+const arred5 = v => Math.round(v / 5) * 5;
+const escapar = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function novoCanvas(l, a) { const c = document.createElement('canvas'); c.width = l; c.height = a; return c; }
+
+if (!window.THREE) {
+  $('aviso-erro').textContent = 'Não foi possível carregar o Three.js. Verifique sua conexão e recarregue a página.';
+  $('aviso-erro').classList.remove('oculto');
+  $('btn-comecar').disabled = true;
+  return;
+}
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const EIXO_Y = V3(0, 1, 0);
+
+/* =====================================================================
+   3. SONS (Web Audio API, tudo sintetizado)
+   ===================================================================== */
+const Som = {
+  ctx: null, ativo: true, saida: null, ruidoBuf: null,
+  iniciar() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.saida = this.ctx.createGain();
+      this.saida.gain.value = 0.55;
+      this.saida.connect(this.ctx.destination);
+      // Um segundo de ruído branco, reutilizado por todos os efeitos.
+      this.ruidoBuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+      const d = this.ruidoBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  pronto() { return this.ativo && this.ctx && this.ctx.state === 'running'; },
+  // Rajada de ruído filtrado (cartas, embaralhar).
+  ruido(atraso, dur, freq, q, vol, freqFinal) {
+    if (!this.pronto()) return;
+    const t = this.ctx.currentTime + atraso;
+    const fonte = this.ctx.createBufferSource(); fonte.buffer = this.ruidoBuf;
+    const filtro = this.ctx.createBiquadFilter(); filtro.type = 'bandpass'; filtro.Q.value = q;
+    filtro.frequency.setValueAtTime(freq, t);
+    if (freqFinal) filtro.frequency.exponentialRampToValueAtTime(freqFinal, t + dur);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.15);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    fonte.connect(filtro); filtro.connect(g); g.connect(this.saida);
+    fonte.start(t, Math.random() * 0.8, dur + 0.02);
+  },
+  // Tom curto com decaimento (fichas, avisos).
+  tom(atraso, freq, dur, vol, tipo = 'sine', freqFinal) {
+    if (!this.pronto()) return;
+    const t = this.ctx.currentTime + atraso;
+    const o = this.ctx.createOscillator(); o.type = tipo; o.frequency.setValueAtTime(freq, t);
+    if (freqFinal) o.frequency.exponentialRampToValueAtTime(freqFinal, t + dur);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.saida);
+    o.start(t); o.stop(t + dur + 0.02);
+  },
+  carta() { this.ruido(0, 0.11, 2600, 0.9, 0.5, 900); },
+  virar() { this.ruido(0, 0.07, 1800, 1.2, 0.5, 3200); this.tom(0.05, 180, 0.05, 0.12); },
+  embaralhar() {
+    // Riffle: estalos de ruído que aceleram, como as cartas batendo umas nas outras.
+    let t = 0;
+    for (let i = 0; i < 22; i++) {
+      this.ruido(t, 0.03, aleatorio(2200, 4200), 2.5, 0.32);
+      t += 0.026 - i * 0.0006;
+    }
+    this.ruido(t + 0.02, 0.12, 1200, 0.8, 0.35, 500);
+  },
+  ficha(n = 1) {
+    for (let i = 0; i < n; i++) {
+      const at = i * aleatorio(0.03, 0.06);
+      this.tom(at, aleatorio(2600, 3800), 0.05, 0.16, 'triangle');
+      this.tom(at, aleatorio(5200, 6400), 0.03, 0.06, 'sine');
+      this.ruido(at, 0.025, 5200, 3, 0.16);
+    }
+  },
+  passar() { this.tom(0, 150, 0.07, 0.4, 'sine', 80); this.tom(0.13, 140, 0.07, 0.35, 'sine', 75); },
+  desistir() { this.ruido(0, 0.2, 1400, 0.7, 0.3, 400); },
+  suaVez() { this.tom(0, 880, 0.14, 0.14); this.tom(0.12, 1320, 0.2, 0.12); },
+  vitoria() { [523, 659, 784, 1047].forEach((f, i) => this.tom(i * 0.11, f, 0.3, 0.16, 'triangle')); },
+  derrota() { [392, 330, 262].forEach((f, i) => this.tom(i * 0.2, f, 0.4, 0.16, 'triangle')); },
+};
+
+/* =====================================================================
+   4. BARALHO E AVALIAÇÃO DE MÃOS
+   ===================================================================== */
+const BARALHO_BASE = [];
+for (let n = 0; n < 4; n++) for (let v = 2; v <= 14; v++) BARALHO_BASE.push({ v, n, id: v + '-' + n });
+
+function novoBaralho() {
+  const b = BARALHO_BASE.slice();
+  for (let i = b.length - 1; i > 0; i--) { const r = Math.floor(Math.random() * (i + 1)); [b[i], b[r]] = [b[r], b[i]]; }
+  return b;
+}
+const carta = (valor, naipe) => BARALHO_BASE[naipe * 13 + valor - 2];
+
+// A pontuação de 5 cartas vira um número: categoria e desempates em base 15. Maior vence.
+const BASE = 15;
+function codificar(categoria, lista) {
+  let p = categoria;
+  for (let i = 0; i < 5; i++) p = p * BASE + (lista[i] || 0);
+  return p;
+}
+function pontuar5(c) {
+  const v = [c[0].v, c[1].v, c[2].v, c[3].v, c[4].v].sort((x, y) => y - x);
+  const flush = c[0].n === c[1].n && c[0].n === c[2].n && c[0].n === c[3].n && c[0].n === c[4].n;
+  // Agrupa valores repetidos: [valor, quantidade], do grupo maior para o menor.
+  const grupos = [];
+  for (let i = 0; i < 5; i++) {
+    if (i && v[i] === v[i - 1]) grupos[grupos.length - 1][1]++;
+    else grupos.push([v[i], 1]);
+  }
+  grupos.sort((x, y) => y[1] - x[1] || y[0] - x[0]);
+  const g = grupos.map(x => x[0]);
+  let seq = 0;                                   // carta mais alta da sequência (A-2-3-4-5 vale 5)
+  if (grupos.length === 5) {
+    if (v[0] - v[4] === 4) seq = v[0];
+    else if (v[0] === 14 && v[1] === 5) seq = 5;
+  }
+  if (seq && flush) return codificar(seq === 14 ? 9 : 8, [seq]);
+  if (grupos[0][1] === 4) return codificar(7, g);
+  if (grupos[0][1] === 3 && grupos[1][1] === 2) return codificar(6, g);
+  if (flush) return codificar(5, v);
+  if (seq) return codificar(4, [seq]);
+  if (grupos[0][1] === 3) return codificar(3, g);
+  if (grupos[0][1] === 2 && grupos[1][1] === 2) return codificar(2, g);
+  if (grupos[0][1] === 2) return codificar(1, g);
+  return codificar(0, v);
+}
+// Todas as combinações de 5 índices entre n cartas (n = 5, 6 ou 7).
+const COMBOS = {};
+function combos(n) {
+  if (COMBOS[n]) return COMBOS[n];
+  const r = [];
+  for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c = b + 1; c < n; c++)
+    for (let d = c + 1; d < n; d++) for (let e = d + 1; e < n; e++) r.push([a, b, c, d, e]);
+  return (COMBOS[n] = r);
+}
+const TMP5 = [null, null, null, null, null];
+function melhorPontuacao(cartas) {
+  let melhor = -1, indices = null;
+  for (const ix of combos(cartas.length)) {
+    for (let i = 0; i < 5; i++) TMP5[i] = cartas[ix[i]];
+    const p = pontuar5(TMP5);
+    if (p > melhor) { melhor = p; indices = ix; }
+  }
+  return { pontos: melhor, indices };
+}
+// Melhor mão de 5 cartas entre 5 a 7 cartas, com o nome e as cartas usadas.
+function melhorMao(cartas) {
+  const r = melhorPontuacao(cartas);
+  const categoria = Math.floor(r.pontos / Math.pow(BASE, 5));
+  return { pontos: r.pontos, categoria, nome: NOMES_MAOS[categoria], cinco: r.indices.map(i => cartas[i]) };
+}
+// Força da mão contra uma mão aleatória (simulação de Monte Carlo): 0 = sempre perde, 1 = sempre vence.
+function estimarForca(mao, mesa, iteracoes = 130) {
+  const usadas = new Set(mao.concat(mesa).map(c => c.id));
+  const resto = BARALHO_BASE.filter(c => !usadas.has(c.id));
+  const faltam = 5 - mesa.length;
+  let pontos = 0;
+  for (let i = 0; i < iteracoes; i++) {
+    for (let k = 0; k < 2 + faltam; k++) {
+      const r = k + Math.floor(Math.random() * (resto.length - k));
+      const t = resto[k]; resto[k] = resto[r]; resto[r] = t;
+    }
+    const comum = mesa.concat(resto.slice(2, 2 + faltam));
+    const eu = melhorPontuacao(mao.concat(comum)).pontos;
+    const ele = melhorPontuacao([resto[0], resto[1]].concat(comum)).pontos;
+    pontos += eu > ele ? 1 : eu === ele ? 0.5 : 0;
+  }
+  return pontos / iteracoes;
+}
+
+/* =====================================================================
+   5. TEXTURAS DESENHADAS EM CANVAS (cartas, fichas, feltro, madeira)
+   ===================================================================== */
+// Naipes desenhados como formas, para não depender de fontes do aparelho.
+function desenharNaipe(x, naipe, cx, cy, tam) {
+  x.save(); x.translate(cx, cy); x.scale(tam / 100, tam / 100); x.beginPath();
+  if (naipe === 1) {                             // copas
+    x.moveTo(0, 46); x.bezierCurveTo(-14, 32, -50, 8, -50, -18); x.bezierCurveTo(-50, -40, -32, -50, -20, -50);
+    x.bezierCurveTo(-8, -50, 0, -40, 0, -28); x.bezierCurveTo(0, -40, 8, -50, 20, -50);
+    x.bezierCurveTo(32, -50, 50, -40, 50, -18); x.bezierCurveTo(50, 8, 14, 32, 0, 46);
+  } else if (naipe === 2) {                      // ouros
+    x.moveTo(0, -52); x.lineTo(38, 0); x.lineTo(0, 52); x.lineTo(-38, 0); x.closePath();
+  } else if (naipe === 0) {                      // espadas
+    x.moveTo(0, -52); x.bezierCurveTo(14, -36, 50, -12, 50, 12); x.bezierCurveTo(50, 32, 34, 40, 22, 40);
+    x.bezierCurveTo(12, 40, 5, 34, 3, 26); x.lineTo(14, 52); x.lineTo(-14, 52); x.lineTo(-3, 26);
+    x.bezierCurveTo(-5, 34, -12, 40, -22, 40); x.bezierCurveTo(-34, 40, -50, 32, -50, 12); x.bezierCurveTo(-50, -12, -14, -36, 0, -52);
+  } else {                                       // paus
+    x.arc(0, -25, 22, 0, Math.PI * 2); x.moveTo(-1, 10); x.arc(-23, 10, 22, 0, Math.PI * 2);
+    x.moveTo(45, 10); x.arc(23, 10, 22, 0, Math.PI * 2);
+    x.moveTo(-6, 0); x.lineTo(-15, 52); x.lineTo(15, 52); x.lineTo(6, 0); x.closePath();
+  }
+  x.fill(); x.restore();
+}
+function retanguloArredondado(x, px, py, l, a, r) {
+  x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + l, py, px + l, py + a, r); x.arcTo(px + l, py + a, px, py + a, r);
+  x.arcTo(px, py + a, px, py, r); x.arcTo(px, py, px + l, py, r); x.closePath();
+}
+const CANVAS_CARTAS = {};
+function canvasCarta(c) {
+  if (CANVAS_CARTAS[c.id]) return CANVAS_CARTAS[c.id];
+  const L = 200, A = 280, cv = novoCanvas(L, A), x = cv.getContext('2d');
+  const cor = (c.n === 1 || c.n === 2) ? '#c5202e' : '#16161c';
+  retanguloArredondado(x, 1, 1, L - 2, A - 2, 16); x.fillStyle = '#fbf8ef'; x.fill();
+  x.lineWidth = 2; x.strokeStyle = '#b9b4a6'; x.stroke();
+  x.fillStyle = cor; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const txt = NOME_VALOR[c.v];
+  // Índice grande nos dois cantos (o de baixo fica de cabeça para baixo).
+  const indice = () => {
+    x.save();
+    x.font = '700 76px Barlow, "Arial Narrow", Arial, sans-serif';
+    if (txt === '10') x.scale(0.78, 1);
+    x.fillText(txt, txt === '10' ? 58 : 44, 52);
+    x.restore();
+    desenharNaipe(x, c.n, 44, 122, 50);
+  };
+  indice();
+  x.save(); x.translate(L, A); x.rotate(Math.PI); indice(); x.restore();
+  // Naipe grande no centro; figuras (J, Q, K) ganham uma moldura.
+  if (c.v >= 11 && c.v <= 13) {
+    x.save(); x.globalAlpha = 0.12; retanguloArredondado(x, 82, 62, 92, 156, 10); x.fill(); x.restore();
+    x.lineWidth = 3; x.strokeStyle = cor; retanguloArredondado(x, 82, 62, 92, 156, 10); x.stroke();
+    x.font = '700 84px Georgia, serif'; x.fillText(txt, 128, 118);
+    desenharNaipe(x, c.n, 128, 178, 48);
+  } else {
+    desenharNaipe(x, c.n, 128, 144, c.v === 14 ? 110 : 84);
+  }
+  return (CANVAS_CARTAS[c.id] = cv);
+}
+const IMAGENS_CARTAS = {};
+function imagemCarta(c) { return IMAGENS_CARTAS[c.id] || (IMAGENS_CARTAS[c.id] = canvasCarta(c).toDataURL('image/png')); }
+
+function canvasVerso() {
+  const L = 200, A = 280, cv = novoCanvas(L, A), x = cv.getContext('2d');
+  retanguloArredondado(x, 1, 1, L - 2, A - 2, 16); x.fillStyle = '#fbf8ef'; x.fill();
+  retanguloArredondado(x, 12, 12, L - 24, A - 24, 10); x.fillStyle = '#7d1622'; x.fill();
+  x.save(); retanguloArredondado(x, 12, 12, L - 24, A - 24, 10); x.clip();
+  x.strokeStyle = 'rgba(224,182,99,.55)'; x.lineWidth = 2;
+  for (let i = -A; i < L + A; i += 22) {
+    x.beginPath(); x.moveTo(i, 0); x.lineTo(i + A, A); x.stroke();
+    x.beginPath(); x.moveTo(i, A); x.lineTo(i + A, 0); x.stroke();
+  }
+  x.restore();
+  x.strokeStyle = '#e0b663'; x.lineWidth = 3; retanguloArredondado(x, 22, 22, L - 44, A - 44, 6); x.stroke();
+  x.fillStyle = '#e0b663'; desenharNaipe(x, 0, 100, 140, 54);
+  return cv;
+}
+function texturaDeCanvas(cv) {
+  const t = new THREE.CanvasTexture(cv);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = anisotropia;
+  return t;
+}
+function canvasFeltro() {
+  const L = 1024, A = 608, cv = novoCanvas(L, A), x = cv.getContext('2d');
+  const g = x.createRadialGradient(L / 2, A / 2, 40, L / 2, A / 2, 570);
+  g.addColorStop(0, '#2c9c5e'); g.addColorStop(0.55, '#1d7a4a'); g.addColorStop(1, '#0e4728');
+  x.fillStyle = g; x.fillRect(0, 0, L, A);
+  for (let i = 0; i < 14000; i++) {              // fibras do feltro
+    x.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.05)';
+    x.fillRect(Math.random() * L, Math.random() * A, 1.6, 1.6);
+  }
+  const ux = L / 2 / MESA.a, uz = A / 2 / MESA.b; // pixels por unidade da cena
+  x.strokeStyle = 'rgba(244,236,216,.3)'; x.lineWidth = 3;
+  x.beginPath(); x.ellipse(L / 2, A / 2, L / 2 * 0.8, A / 2 * 0.74, 0, 0, Math.PI * 2); x.stroke();
+  // Marcas das cinco cartas comunitárias.
+  x.strokeStyle = 'rgba(244,236,216,.2)'; x.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    const p = POS.mesa(i);
+    retanguloArredondado(x, L / 2 + p.x * ux - CARTA.l * ux / 2 - 3, A / 2 + p.z * uz - CARTA.a * uz / 2 - 3, CARTA.l * ux + 6, CARTA.a * uz + 6, 6);
+    x.stroke();
+  }
+  x.fillStyle = 'rgba(244,236,216,.2)'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = '400 34px Limelight, Georgia, serif';
+  x.fillText("TEXAS HOLD'EM", L / 2, A / 2 - 1.02 * uz);
+  return cv;
+}
+function canvasMadeira() {
+  const cv = novoCanvas(512, 512), x = cv.getContext('2d');
+  x.fillStyle = '#6a3d1c'; x.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 260; i++) {
+    const y = Math.random() * 512;
+    x.strokeStyle = `rgba(${Math.random() > 0.5 ? '30,14,4' : '150,96,48'},${aleatorio(0.06, 0.22)})`;
+    x.lineWidth = aleatorio(0.6, 3);
+    x.beginPath(); x.moveTo(0, y);
+    x.bezierCurveTo(170, y + aleatorio(-12, 12), 340, y + aleatorio(-12, 12), 512, y + aleatorio(-6, 6));
+    x.stroke();
+  }
+  return cv;
+}
+function canvasCarpete() {
+  const cv = novoCanvas(256, 256), x = cv.getContext('2d');
+  x.fillStyle = '#2a0f14'; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = 'rgba(224,182,99,.16)'; x.lineWidth = 3;
+  for (const [cx, cy] of [[64, 64], [192, 192], [64, 192], [192, 64]]) {
+    x.beginPath(); x.moveTo(cx, cy - 44); x.lineTo(cx + 44, cy); x.lineTo(cx, cy + 44); x.lineTo(cx - 44, cy); x.closePath(); x.stroke();
+  }
+  for (let i = 0; i < 2500; i++) { x.fillStyle = 'rgba(0,0,0,.14)'; x.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
+  return cv;
+}
+function canvasFichaTopo(d) {
+  const cv = novoCanvas(128, 128), x = cv.getContext('2d');
+  x.fillStyle = d.cor; x.beginPath(); x.arc(64, 64, 64, 0, Math.PI * 2); x.fill();
+  x.fillStyle = d.detalhe;                       // seis encaixes na borda
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3;
+    x.beginPath(); x.moveTo(64, 64); x.arc(64, 64, 64, a - 0.2, a + 0.2); x.closePath(); x.fill();
+  }
+  x.fillStyle = d.cor; x.beginPath(); x.arc(64, 64, 46, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = d.detalhe; x.lineWidth = 3; x.beginPath(); x.arc(64, 64, 40, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = d.detalhe; x.font = '700 34px Barlow, Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(String(d.valor), 64, 66);
+  return cv;
+}
+function canvasFichaLado(d) {
+  const cv = novoCanvas(192, 8), x = cv.getContext('2d');
+  x.fillStyle = d.cor; x.fillRect(0, 0, 192, 8);
+  x.fillStyle = d.detalhe;
+  for (let i = 0; i < 6; i++) x.fillRect(i * 32 + 10, 0, 12, 8);
+  return cv;
+}
+function canvasBrilho() {
+  const cv = novoCanvas(128, 176), x = cv.getContext('2d');
+  x.shadowColor = '#ffd76a'; x.shadowBlur = 22; x.fillStyle = '#ffd76a';
+  retanguloArredondado(x, 26, 26, 76, 124, 8); x.fill(); x.fill();
+  return cv;
+}
+function canvasBokeh() {
+  const cv = novoCanvas(64, 64), x = cv.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return cv;
+}
+
+/* =====================================================================
+   6. CENA 3D: renderizador, luzes, mesa e ambiente
+   ===================================================================== */
+// Posições fixas sobre a mesa.
+const POS = {
+  baralho: V3(-0.45, 0.05, -1.5),
+  centroDealer: V3(0, 0.05, -1.45),
+  descarte: V3(0.32, 0.02, -1.56),
+  pote: V3(0, 0, 0.44),
+  mesa: i => V3((i - 2) * 0.42, CARTA.e / 2 + 0.001, -0.34),
+};
+
+let renderer, cena, camera, anisotropia = 1;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  $('aviso-erro').textContent = 'Seu navegador não conseguiu iniciar o WebGL, necessário para a cena 3D.';
+  $('aviso-erro').classList.remove('oculto');
+  $('btn-comecar').disabled = true;
+  return;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+anisotropia = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+$('cena').appendChild(renderer.domElement);
+
+cena = new THREE.Scene();
+cena.background = new THREE.Color(0x04070a);
+cena.fog = new THREE.Fog(0x04070a, 11, 30);
+camera = new THREE.PerspectiveCamera(46, 1, 0.1, 80);
+
+const mat = (cor, rugosidade = 0.8, metal = 0) => new THREE.MeshStandardMaterial({ color: cor, roughness: rugosidade, metalness: metal });
+
+function montarAmbiente() {
+  // Luz de cassino: um foco quente sobre a mesa e quase nada em volta.
+  cena.add(new THREE.AmbientLight(0x8a93b0, 0.34));
+  const foco = new THREE.SpotLight(0xfff0d0, 1.3, 26, 0.8, 0.55, 1.1);
+  foco.position.set(0, 6.6, 0.6);
+  foco.target.position.set(0, 0, 0);
+  foco.castShadow = true;
+  foco.shadow.mapSize.set(innerWidth < 720 ? 1024 : 2048, innerWidth < 720 ? 1024 : 2048);
+  foco.shadow.camera.near = 2; foco.shadow.camera.far = 12; foco.shadow.bias = -0.0006; foco.shadow.radius = 3;
+  cena.add(foco, foco.target);
+  const frente = new THREE.PointLight(0xffd9a8, 0.32, 16);     // luz suave vinda do lado do jogador
+  frente.position.set(0, 3.2, 6.5); cena.add(frente);
+  const fundo = new THREE.PointLight(0x5a78ff, 0.22, 18);      // contraluz frio atrás do juiz
+  fundo.position.set(0, 3, -7); cena.add(fundo);
+
+  // Feltro oval (um círculo esticado) com textura desenhada.
+  const feltro = new THREE.Mesh(new THREE.CircleGeometry(1, 96), new THREE.MeshStandardMaterial({ map: texturaDeCanvas(canvasFeltro()), roughness: 0.95 }));
+  feltro.rotation.x = -Math.PI / 2; feltro.scale.set(MESA.a, MESA.b, 1); feltro.receiveShadow = true;
+  cena.add(feltro);
+
+  // Borda de madeira: anel oval extrudado com chanfro.
+  const texMadeira = texturaDeCanvas(canvasMadeira());
+  texMadeira.wrapS = texMadeira.wrapT = THREE.RepeatWrapping; texMadeira.repeat.set(0.45, 0.45);
+  const madeira = new THREE.MeshStandardMaterial({ map: texMadeira, roughness: 0.38, metalness: 0.05 });
+  const forma = new THREE.Shape(); forma.absellipse(0, 0, MESA.a + 0.38, MESA.b + 0.38, 0, Math.PI * 2, false, 0);
+  const furo = new THREE.Path(); furo.absellipse(0, 0, MESA.a + 0.03, MESA.b + 0.03, 0, Math.PI * 2, true, 0);
+  forma.holes.push(furo);
+  const borda = new THREE.Mesh(new THREE.ExtrudeGeometry(forma, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 5, curveSegments: 72 }), madeira);
+  borda.rotation.x = -Math.PI / 2; borda.position.y = -0.03; borda.castShadow = true; borda.receiveShadow = true;
+  cena.add(borda);
+
+  // Corpo e pé da mesa.
+  const madeiraEscura = new THREE.MeshStandardMaterial({ map: texMadeira, color: 0x8a6a55, roughness: 0.6 });
+  const corpo = new THREE.Mesh(new THREE.CylinderGeometry(1, 0.86, 0.32, 72), madeiraEscura);
+  corpo.scale.set(MESA.a + 0.42, 1, MESA.b + 0.42); corpo.position.y = -0.21; corpo.castShadow = true; cena.add(corpo);
+  const pe = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.85, 1.25, 32), madeiraEscura);
+  pe.position.y = -0.97; pe.castShadow = true; cena.add(pe);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.1, 40), madeiraEscura);
+  base.position.y = CHAO + 0.05; cena.add(base);
+
+  // Chão acarpetado, que some na escuridão.
+  const texCarpete = texturaDeCanvas(canvasCarpete());
+  texCarpete.wrapS = texCarpete.wrapT = THREE.RepeatWrapping; texCarpete.repeat.set(36, 36);
+  const chao = new THREE.Mesh(new THREE.CircleGeometry(34, 48), new THREE.MeshStandardMaterial({ map: texCarpete, roughness: 1 }));
+  chao.rotation.x = -Math.PI / 2; chao.position.y = CHAO; chao.receiveShadow = true; cena.add(chao);
+
+  // Luminária pendurada sobre a mesa.
+  const cupula = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 1.25, 0.55, 40, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x0f3d28, emissive: 0x4a3a10, emissiveIntensity: 0.5, roughness: 0.5, side: THREE.DoubleSide }));
+  cupula.position.y = 5.4; cena.add(cupula);
+  const lampada = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff2c8 }));
+  lampada.position.y = 5.25; cena.add(lampada);
+  const fio = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 8, 6), mat(0x111111));
+  fio.position.y = 9.6; cena.add(fio);
+
+  // Luzes desfocadas ao longe, como o salão de um cassino.
+  const n = 110, pos = new Float32Array(n * 3), cores = new Float32Array(n * 3);
+  const paleta = [new THREE.Color(0xffc266), new THREE.Color(0xff6b5a), new THREE.Color(0x6aa8ff), new THREE.Color(0xfff0c0)];
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, r = aleatorio(15, 24);
+    pos.set([Math.cos(a) * r, aleatorio(0.2, 7), Math.sin(a) * r], i * 3);
+    const c = paleta[i % paleta.length]; cores.set([c.r, c.g, c.b], i * 3);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(cores, 3));
+  cena.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    size: 0.9, map: new THREE.CanvasTexture(canvasBokeh()), vertexColors: true, transparent: true, opacity: 0.5,
+    depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+  })));
+}
+
+/* =====================================================================
+   7. CÂMERA EM 1ª PESSOA (os olhos do jogador humano), COM OLHAR LIVRE
+   ===================================================================== */
+// yaw gira a cabeça para os lados (positivo = esquerda) e pitch para cima e para baixo.
+const visao = {
+  olho: V3(0, 1.5, 3.1), yaw: 0, pitch: -0.24, zoom: 1, pitchPadrao: -0.24, fovBase: 72,
+  yawAuto: 0, alvoAuto: 0, seguir: true,       // o olhar acompanha quem está jogando até você mexer a câmera
+};
+function aplicarZoom() {
+  camera.fov = 2 * Math.atan(Math.tan(visao.fovBase * Math.PI / 360) * visao.zoom) * 180 / Math.PI;
+  camera.updateProjectionMatrix();
+}
+function ajustarTela() {
+  const l = innerWidth, a = innerHeight, retrato = l < a;
+  renderer.setSize(l, a);
+  // A barra de ações cobre a parte de baixo da tela: o centro da visão sobe para o meio da área livre.
+  const barra = $('barra').offsetHeight || 0;
+  camera.aspect = l / (a + barra);
+  camera.setViewOffset(l, a + barra, 0, barra, l, a);
+  // Em tela estreita (celular em pé) o campo de visão abre para caber mais da mesa.
+  visao.fovBase = retrato ? 100 : 72;
+  visao.pitchPadrao = retrato ? -0.14 : -0.24;
+  aplicarZoom();
+}
+function reiniciarCamera() { visao.yaw = 0; visao.yawAuto = 0; visao.pitch = visao.pitchPadrao; visao.zoom = 1; visao.seguir = true; aplicarZoom(); }
+const _mira = new THREE.Vector3();
+function atualizarCamera(dt) {
+  visao.yawAuto += ((visao.seguir ? visao.alvoAuto : 0) - visao.yawAuto) * Math.min(1, dt * 2.5);
+  const y = visao.yaw + visao.yawAuto, cp = Math.cos(visao.pitch);
+  camera.position.copy(visao.olho);
+  _mira.set(visao.olho.x - Math.sin(y) * cp, visao.olho.y + Math.sin(visao.pitch), visao.olho.z - Math.cos(y) * cp);
+  camera.lookAt(_mira);
+}
+// Vira o olhar só o necessário para o jogador da vez aparecer na tela.
+function olharPara(j) {
+  if (!j || j.humano) { visao.alvoAuto = 0; return; }
+  const ang = Math.atan2(visao.olho.x - j.geo.avatar.x, visao.olho.z - j.geo.avatar.z);
+  const meio = Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect) * 0.7;
+  visao.alvoAuto = Math.abs(ang) > meio ? Math.sign(ang) * (Math.abs(ang) - meio) : 0;
+}
+function ligarControlesCamera() {
+  const el = renderer.domElement, dedos = new Map();
+  let pinca = 0;
+  const distancia = () => { const p = [...dedos.values()]; return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y); };
+  const zoom = fator => { visao.zoom = limitar(visao.zoom * fator, 0.45, 1.2); aplicarZoom(); };
+  el.addEventListener('pointerdown', e => {
+    dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { el.setPointerCapture(e.pointerId); } catch (_) { /* sem captura, segue normal */ }
+    if (dedos.size === 2) pinca = distancia();
+  });
+  el.addEventListener('pointermove', e => {
+    const p = dedos.get(e.pointerId);
+    if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (dedos.size === 1) {
+      // Arrastar "puxa" a cena: o olhar vai para o lado oposto, como em um mapa.
+      if (visao.seguir) { visao.yaw += visao.yawAuto; visao.yawAuto = 0; visao.seguir = false; }
+      const k = 0.0042 * visao.zoom;
+      visao.yaw = limitar(visao.yaw + dx * k, -2.2, 2.2);
+      visao.pitch = limitar(visao.pitch + dy * k, -1.25, 0.6);
+    } else if (dedos.size === 2) {
+      const d = distancia();
+      if (pinca > 0 && d > 0) zoom(pinca / d);
+      pinca = d;
+    }
+  });
+  const soltar = e => { dedos.delete(e.pointerId); pinca = 0; };
+  el.addEventListener('pointerup', soltar);
+  el.addEventListener('pointercancel', soltar);
+  el.addEventListener('wheel', e => { e.preventDefault(); zoom(1 + e.deltaY * 0.0011); }, { passive: false });
+  el.addEventListener('dblclick', reiniciarCamera);
+}
+
+/* =====================================================================
+   8. ANIMAÇÕES (interpolações que avançam no laço principal)
+   ===================================================================== */
+const interpolacoes = [];
+let velocidadeBase = Number(PARAMS.get('vel')) || 1;
+const suave = k => k * k * (3 - 2 * k);
+const saida = k => 1 - Math.pow(1 - k, 3);
+// Executa passo(k) com k indo de 0 a 1 ao longo de durMs. Devolve uma Promise que resolve no fim.
+function animar(durMs, passo, curva = suave) {
+  return new Promise(resolver => interpolacoes.push({ t: 0, dur: Math.max(1, durMs), passo, curva, resolver }));
+}
+const esperar = ms => animar(ms, () => {});
+function atualizarInterpolacoes(dtMs) {
+  for (let i = interpolacoes.length - 1; i >= 0; i--) {
+    const it = interpolacoes[i];
+    it.t += dtMs;
+    const k = Math.min(1, it.t / it.dur);
+    it.passo(it.curva(k));
+    if (k >= 1) { interpolacoes.splice(interpolacoes.indexOf(it), 1); it.resolver(); }
+  }
+}
+// Move um objeto até o destino, com arco opcional e rotação final opcional.
+function mover(obj, destino, dur, opc = {}) {
+  const p0 = obj.position.clone(), r0 = { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z };
+  const rot = opc.rot || {}, arco = opc.arco || 0;
+  return animar(dur, k => {
+    obj.position.lerpVectors(p0, destino, k);
+    obj.position.y += Math.sin(Math.PI * k) * arco;
+    for (const e of ['x', 'y', 'z']) if (rot[e] !== undefined) obj.rotation[e] = r0[e] + (rot[e] - r0[e]) * k;
+  }, opc.curva || suave);
+}
+
+/* =====================================================================
+   9. CARTAS E FICHAS EM 3D
+   ===================================================================== */
+let geoCarta, matVerso, matBordaCarta, texBrilho, geoBrilho, geoFicha;
+const texFaces = {}, matFichas = {};
+const brilhando = new Set();                     // cartas vencedoras com brilho pulsante
+const malhaDaCarta = {};                         // id da carta -> malha 3D (mão atual)
+
+function prepararPecas() {
+  geoCarta = new THREE.BoxGeometry(CARTA.l, CARTA.e, CARTA.a);
+  matVerso = new THREE.MeshStandardMaterial({ map: texturaDeCanvas(canvasVerso()), roughness: 0.55 });
+  matBordaCarta = mat(0xf2efe6, 0.6);
+  texBrilho = new THREE.CanvasTexture(canvasBrilho());
+  geoBrilho = new THREE.PlaneGeometry(CARTA.l * 1.68, CARTA.a * 1.42);
+  geoFicha = new THREE.CylinderGeometry(FICHA.r, FICHA.r, FICHA.h, 22);
+  for (const d of DENOMINACOES) {
+    const topo = new THREE.MeshStandardMaterial({ map: texturaDeCanvas(canvasFichaTopo(d)), roughness: 0.5 });
+    const texLado = texturaDeCanvas(canvasFichaLado(d));
+    matFichas[d.valor] = [new THREE.MeshStandardMaterial({ map: texLado, roughness: 0.5 }), topo, topo];
+  }
+}
+// Carta 3D. Rotação em ordem YXZ: z vira a carta (PI = fechada), x inclina, y gira sobre a mesa.
+function criarCarta3D(c) {
+  if (!texFaces[c.id]) texFaces[c.id] = texturaDeCanvas(canvasCarta(c));
+  const face = new THREE.MeshStandardMaterial({ map: texFaces[c.id], emissiveMap: texFaces[c.id], emissive: 0x000000, roughness: 0.5 });
+  const m = new THREE.Mesh(geoCarta, [matBordaCarta, matBordaCarta, face, matVerso, matBordaCarta, matBordaCarta]);
+  m.rotation.order = 'YXZ';
+  m.castShadow = true;
+  const brilho = new THREE.Mesh(geoBrilho, new THREE.MeshBasicMaterial({
+    map: texBrilho, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  }));
+  brilho.rotation.x = -Math.PI / 2; brilho.position.y = -0.006; brilho.visible = false;
+  m.add(brilho);
+  m.userData = { carta: c, face, brilho };
+  malhaDaCarta[c.id] = m;
+  cena.add(m);
+  return m;
+}
+function removerCarta3D(m) {
+  cena.remove(m); brilhando.delete(m);
+  m.userData.face.dispose(); m.userData.brilho.material.dispose();
+  delete malhaDaCarta[m.userData.carta.id];
+}
+function criarFicha3D(d) {
+  const m = new THREE.Mesh(geoFicha, matFichas[d.valor]);
+  m.castShadow = true; m.rotation.y = Math.random() * 6.28;
+  return m;
+}
+// Decomposição simples: o menor número de fichas possível.
+function decomporGuloso(valor) {
+  const r = [];
+  for (const d of DENOMINACOES) { const q = Math.floor(valor / d.valor); if (q) { r.push({ d, qtd: q }); valor -= q * d.valor; } }
+  return r;
+}
+// Decomposição "bonita" para as pilhas dos jogadores: guarda troco em fichas pequenas para a pilha ficar variada.
+function decomporBonito(valor) {
+  let resto = Math.floor(valor / 5) * 5;
+  const qtd = { 5: 0, 25: 0, 50: 0, 100: 0, 500: 0 };
+  qtd[5] = (resto % 25) / 5; resto -= qtd[5] * 5;
+  if (resto >= 75) { qtd[5] += 5; resto -= 25; }
+  qtd[25] = (resto % 50) / 25; resto -= qtd[25] * 25;
+  if (resto >= 200) { qtd[25] += 2; resto -= 50; }
+  qtd[50] = (resto % 100) / 50; resto -= qtd[50] * 50;
+  if (resto >= 500) { qtd[50] += 2; resto -= 100; }
+  qtd[100] = (resto % 500) / 100; resto -= qtd[100] * 100;
+  if (resto >= 1500) { qtd[100] += 5; resto -= 500; }
+  qtd[500] = resto / 500;
+  return DENOMINACOES.filter(d => qtd[d.valor] > 0).map(d => ({ d, qtd: qtd[d.valor] }));
+}
+const DESLOC_COLUNAS = [[0, 0], [0.155, 0], [-0.155, 0], [0.078, 0.135], [-0.078, 0.135], [0.078, -0.135], [-0.078, -0.135],
+  [0.233, 0.135], [-0.233, 0.135], [0.31, 0], [-0.31, 0], [0.233, -0.135], [-0.233, -0.135], [0, 0.27], [0, -0.27]];
+// Reconstrói uma pilha de fichas (grupo) com o valor dado.
+function montarPilha(grupo, valor, bonito) {
+  while (grupo.children.length) grupo.remove(grupo.children[0]);
+  if (valor <= 0) return;
+  const colunas = [];
+  for (const c of (bonito ? decomporBonito(valor) : decomporGuloso(valor))) {
+    let q = c.qtd;
+    while (q > 0) { const n = Math.min(q, 14); colunas.push({ d: c.d, qtd: n }); q -= n; }
+  }
+  colunas.forEach((c, i) => {
+    const o = DESLOC_COLUNAS[i % DESLOC_COLUNAS.length];
+    for (let k = 0; k < c.qtd; k++) {
+      const f = criarFicha3D(c.d);
+      f.position.set(o[0] + aleatorio(-0.006, 0.006), FICHA.h * (k + 0.5), o[1] + aleatorio(-0.006, 0.006));
+      grupo.add(f);
+    }
+  });
+}
+// Fichas voando de um ponto a outro (aposta, pote, prêmio). Some ao chegar; quem chama remonta a pilha de destino.
+async function voarFichas(de, para, valor, arco = 0.42) {
+  const lista = [];
+  for (const c of decomporGuloso(valor)) for (let i = 0; i < c.qtd && lista.length < 9; i++) lista.push(c.d);
+  if (!lista.length) return;
+  const voos = lista.map((d, i) => (async () => {
+    const f = criarFicha3D(d);
+    f.position.set(de.x + aleatorio(-0.05, 0.05), FICHA.h * (i + 0.5), de.z + aleatorio(-0.05, 0.05));
+    cena.add(f);
+    await esperar(i * 40);
+    await mover(f, V3(para.x + aleatorio(-0.07, 0.07), FICHA.h * (0.5 + i * 0.5), para.z + aleatorio(-0.07, 0.07)), 400, { arco });
+    Som.ficha();
+    return f;
+  })());
+  const fichas = await Promise.all(voos);
+  fichas.forEach(f => cena.remove(f));
+}
+
+/* =====================================================================
+   10. AVATARES DOS JOGADORES E O JUIZ (DEALER)
+   ===================================================================== */
+function posicionarMembro(m, a, b) {
+  const d = new THREE.Vector3().subVectors(b, a), comp = d.length();
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.scale.set(1, comp, 1);
+  m.quaternion.setFromUnitVectors(EIXO_Y, d.normalize());
+}
+function criarMembro(pai, a, b, raio, material) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(raio, raio, 1, 10), material);
+  m.castShadow = true; posicionarMembro(m, a, b); pai.add(m);
+  return m;
+}
+// Avatar simples (bots e juiz): tronco, cabeça e um detalhe de estilo por personagem. A frente do avatar é +z.
+function criarAvatar(o) {
+  const g = new THREE.Group();
+  const roupa = mat(o.roupa, 0.85), pele = mat(o.pele, 0.7), cabelo = mat(o.cabelo, 0.55), escuro = mat(0x17171c, 0.5);
+  const por = (geo, m, x, y, z) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.castShadow = true; g.add(me); return me; };
+  por(new THREE.CylinderGeometry(0.23, 0.3, 0.86, 20), roupa, 0, -0.1, 0);
+  por(new THREE.SphereGeometry(0.27, 20, 14), roupa, 0, 0.3, 0).scale.set(1.2, 0.42, 0.85);
+  por(new THREE.CylinderGeometry(0.075, 0.085, 0.14, 12), pele, 0, 0.43, 0);
+  por(new THREE.SphereGeometry(0.2, 28, 20), pele, 0, 0.64, 0);
+  for (const s of [-1, 1]) por(new THREE.SphereGeometry(0.024, 10, 8), escuro, s * 0.075, 0.67, 0.18);
+  por(new THREE.SphereGeometry(0.028, 10, 8), pele, 0, 0.62, 0.198);
+  por(new THREE.SphereGeometry(0.208, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.52), cabelo, 0, 0.645, -0.005).rotation.x = -0.3;
+  if (o.estilo === 'coque') {                    // Bia: coque e óculos
+    por(new THREE.SphereGeometry(0.085, 14, 10), cabelo, 0, 0.87, -0.09);
+    for (const s of [-1, 1]) por(new THREE.TorusGeometry(0.042, 0.008, 6, 18), escuro, s * 0.075, 0.67, 0.19);
+    por(new THREE.BoxGeometry(0.07, 0.01, 0.01), escuro, 0, 0.675, 0.2);
+  } else if (o.estilo === 'moicano') {           // Rex: moicano e sobrancelhas zangadas
+    for (let i = 0; i < 5; i++) {
+      const a = -0.5 + i * 0.42;
+      por(new THREE.ConeGeometry(0.045, 0.15, 8), cabelo, 0, 0.64 + Math.cos(a) * 0.25, -Math.sin(a) * 0.25 + 0.02).rotation.x = -a;
+    }
+    for (const s of [-1, 1]) por(new THREE.BoxGeometry(0.075, 0.016, 0.02), escuro, s * 0.075, 0.712, 0.182).rotation.z = -s * 0.42;
+  } else if (o.estilo === 'chapeu') {            // Zeca: chapéu e óculos escuros
+    por(new THREE.CylinderGeometry(0.165, 0.185, 0.17, 20), escuro, 0, 0.885, 0);
+    por(new THREE.CylinderGeometry(0.31, 0.31, 0.02, 24), escuro, 0, 0.8, 0);
+    por(new THREE.BoxGeometry(0.27, 0.06, 0.03), mat(0x08080a, 0.15, 0.6), 0, 0.672, 0.182);
+  } else if (o.estilo === 'longo') {             // Lia: cabelo comprido
+    por(new THREE.SphereGeometry(0.2, 18, 14), cabelo, 0, 0.52, -0.1).scale.set(1.08, 1.45, 0.75);
+  } else if (o.estilo === 'juiz') {              // juiz: colete, gravata borboleta e bigode
+    const colete = new THREE.Mesh(new THREE.CylinderGeometry(0.245, 0.315, 0.8, 24, 1, true, 0.42, Math.PI * 2 - 0.84),
+      new THREE.MeshStandardMaterial({ color: 0x131318, roughness: 0.6, side: THREE.DoubleSide }));
+    colete.position.set(0, -0.12, 0); colete.castShadow = true; g.add(colete);
+    for (const s of [-1, 1]) por(new THREE.ConeGeometry(0.05, 0.1, 8), mat(0xb8202c, 0.5), s * 0.05, 0.39, 0.215).rotation.z = s * Math.PI / 2;
+    por(new THREE.BoxGeometry(0.11, 0.022, 0.02), cabelo, 0, 0.578, 0.19);
+    for (let i = 0; i < 3; i++) por(new THREE.SphereGeometry(0.016, 8, 6), mat(0xe0b663, 0.3, 0.7), 0, 0.22 - i * 0.14, 0.262 + i * 0.012);
+  }
+  if (o.sentado) {
+    // Braços apoiados na borda, cadeira e pernas.
+    for (const s of [-1, 1]) {
+      const ombro = V3(s * 0.31, 0.27, 0.02), cotovelo = V3(s * 0.41, 0.02, 0.2), mao = V3(s * 0.2, 0.16, 0.5);
+      criarMembro(g, ombro, cotovelo, 0.072, roupa); criarMembro(g, cotovelo, mao, 0.06, roupa);
+      por(new THREE.SphereGeometry(0.072, 10, 8), roupa, cotovelo.x, cotovelo.y, cotovelo.z);
+      por(new THREE.SphereGeometry(0.068, 12, 10), pele, mao.x, mao.y, mao.z);
+      const calca = mat(0x23252e, 0.9);
+      criarMembro(g, V3(s * 0.13, -0.5, 0), V3(s * 0.13, -0.5, 0.42), 0.088, calca);
+      criarMembro(g, V3(s * 0.13, -0.5, 0.42), V3(s * 0.13, -1.1, 0.44), 0.075, calca);
+      por(new THREE.BoxGeometry(0.13, 0.07, 0.24), escuro, s * 0.13, -1.11, 0.5);
+    }
+    const couro = mat(0x521d22, 0.55), metal = mat(0x2a2a30, 0.4, 0.7);
+    por(new THREE.BoxGeometry(0.68, 0.92, 0.09), couro, 0, -0.1, -0.35);
+    por(new THREE.BoxGeometry(0.68, 0.08, 0.64), couro, 0, -0.58, -0.02);
+    por(new THREE.CylinderGeometry(0.05, 0.05, 0.54, 10), metal, 0, -0.86, 0);
+    por(new THREE.CylinderGeometry(0.3, 0.33, 0.04, 20), metal, 0, -1.125, 0);
+  } else {
+    const calca = mat(0x14141a, 0.9), pisoLocal = (CHAO - o.altura) / ESCALA_AVATAR;
+    for (const s of [-1, 1]) criarMembro(g, V3(s * 0.12, -0.5, 0), V3(s * 0.12, pisoLocal, 0), 0.1, calca);
+  }
+  g.scale.setScalar(ESCALA_AVATAR);
+  return g;
+}
+
+// O juiz fica em pé no centro do lado oposto ao humano. Os braços seguem as mãos, que são animadas.
+const dealer = { grupo: null, maos: {}, olharPara: 0, baralho: null, metades: [] };
+function criarDealer() {
+  const altura = 0.44;
+  const g = criarAvatar({ roupa: 0xf1efe8, pele: 0xe6b98f, cabelo: 0x2b1d14, estilo: 'juiz', sentado: false, altura });
+  g.position.set(0, altura, -(MESA.b + 0.78));
+  g.rotation.x = 0.1;
+  cena.add(g);
+  dealer.grupo = g;
+  const manga = mat(0xf1efe8, 0.85), pele = mat(0xe6b98f, 0.7);
+  for (const lado of ['E', 'D']) {
+    const s = lado === 'E' ? -1 : 1;
+    const repouso = V3(s * 0.5, 0.17, -1.86);
+    const mao = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 10), pele); mao.castShadow = true; cena.add(mao);
+    const cotovelo = new THREE.Mesh(new THREE.SphereGeometry(0.098, 10, 8), manga); cena.add(cotovelo);
+    const braco = criarMembro(cena, V3(0, 0, 0), V3(0, 1, 0), 0.1, manga);
+    const antebraco = criarMembro(cena, V3(0, 0, 0), V3(0, 1, 0), 0.085, manga);
+    dealer.maos[lado] = { s, pos: repouso.clone(), repouso, mao, cotovelo, braco, antebraco, ombroLocal: V3(s * 0.31, 0.27, 0.02) };
+  }
+  // Baralho sobre a mesa e as duas metades usadas na animação de embaralhar.
+  const matBaralho = [matBordaCarta, matBordaCarta, matVerso, matVerso, matBordaCarta, matBordaCarta];
+  dealer.baralho = new THREE.Mesh(new THREE.BoxGeometry(CARTA.l, 0.09, CARTA.a), matBaralho);
+  dealer.baralho.position.copy(POS.baralho); dealer.baralho.castShadow = true; cena.add(dealer.baralho);
+  for (let i = 0; i < 2; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(CARTA.l, 0.045, CARTA.a), matBaralho);
+    m.visible = false; m.castShadow = true; cena.add(m); dealer.metades.push(m);
+  }
+}
+const _ombro = new THREE.Vector3(), _cot = new THREE.Vector3();
+function atualizarDealer(t, dt) {
+  const g = dealer.grupo;
+  // Respira e vira o corpo devagar na direção de quem está jogando.
+  g.rotation.y += (dealer.olharPara - g.rotation.y) * Math.min(1, dt * 4);
+  g.position.y = 0.44 + Math.sin(t * 1.6) * 0.008;
+  g.updateMatrixWorld();
+  for (const lado of ['E', 'D']) {
+    const m = dealer.maos[lado];
+    _ombro.copy(m.ombroLocal); g.localToWorld(_ombro);
+    m.mao.position.copy(m.pos);
+    _cot.lerpVectors(_ombro, m.pos, 0.5); _cot.x += m.s * 0.17; _cot.y -= 0.1;
+    m.cotovelo.position.copy(_cot);
+    posicionarMembro(m.braco, _ombro, _cot);
+    posicionarMembro(m.antebraco, _cot, m.pos);
+  }
+}
+// Leva a mão do juiz até perto do alvo (limitada ao alcance do braço).
+function moverMao(lado, alvo, dur) {
+  const m = dealer.maos[lado], ombro = V3(m.s * 0.43, 0.83, -(MESA.b + 0.74));
+  const destino = alvo.clone(); destino.y = Math.max(destino.y, 0.14);
+  const d = new THREE.Vector3().subVectors(destino, ombro);
+  if (d.length() > 1.75) destino.copy(ombro).addScaledVector(d.normalize(), 1.75);
+  const p0 = m.pos.clone();
+  return animar(dur, k => m.pos.lerpVectors(p0, destino, k), saida);
+}
+async function gestoMao(lado, alvo, ida = 150, volta = 260) {
+  await moverMao(lado, alvo, ida);
+  await moverMao(lado, dealer.maos[lado].repouso, volta);
+}
+function dealerOlhar(pos) { dealer.olharPara = pos ? Math.atan2(pos.x - dealer.grupo.position.x, pos.z - dealer.grupo.position.z) * 0.6 : 0; }
+
+// Animação de embaralhar: o baralho se divide em duas metades que se entrelaçam três vezes.
+async function animarEmbaralhar() {
+  const [mE, mD] = dealer.metades, c = POS.centroDealer;
+  await Promise.all([mover(dealer.baralho, c, 260), moverMao('E', V3(-0.3, 0.16, c.z), 260), moverMao('D', V3(0.3, 0.16, c.z), 260)]);
+  dealer.baralho.visible = false; mE.visible = mD.visible = true;
+  const colocar = (afast, incl, y) => {
+    mE.position.set(c.x - afast, c.y + y, c.z); mE.rotation.z = -incl;
+    mD.position.set(c.x + afast, c.y + y, c.z); mD.rotation.z = incl;
+    dealer.maos.E.pos.set(c.x - afast - 0.14, 0.17 + y, c.z);
+    dealer.maos.D.pos.set(c.x + afast + 0.14, 0.17 + y, c.z);
+  };
+  for (let i = 0; i < 3; i++) {
+    await animar(200, k => colocar(0.02 + 0.2 * k, 0.4 * k, 0.07 * k));
+    Som.embaralhar();
+    await animar(420, k => colocar(0.22 - 0.2 * k, 0.4 * (1 - k), 0.07 * (1 - k)));
+    await esperar(70);
+  }
+  mE.visible = mD.visible = false; dealer.baralho.visible = true;
+  moverMao('D', dealer.maos.D.repouso, 300);
+  await Promise.all([mover(dealer.baralho, POS.baralho, 300), moverMao('E', V3(POS.baralho.x - 0.1, 0.17, POS.baralho.z - 0.22), 300)]);
+}
+
+/* =====================================================================
+   11. ESTADO DO JOGO E JOGADORES
+   ===================================================================== */
+const jogo = {
+  jogadores: [], botao: -1, baralho: [], mesa: [], malhasMesa: [],
+  pote: 0, apostaAtual: 0, aumentoMinimo: 0, numeroMao: 0, nivel: 0, sb: 10, bb: 20,
+  vez: null, ativo: false, potesInfo: [], sbIdx: -1, bbIdx: -1,
+};
+let fichaBotao, anelVez, grupoPote;
+const posLivre = V3(0, 0, 0);
+
+// Pontos de referência de um assento, a partir do ângulo em volta da mesa.
+function geometriaAssento(grau, humano) {
+  const t = grau * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+  const ponto = (ra, rb) => V3(ra * c, 0, rb * s);
+  const direita = V3(s, 0, -c);                  // lado direito de quem está sentado olhando para o centro
+  return {
+    direita,
+    avatar: ponto(MESA.a + 0.78, MESA.b + 0.78),
+    cartas: humano ? V3(0, 0, 1.0) : ponto(2.6, 1.4),
+    pilha: humano ? V3(0.88, 0, 1.08) : ponto(2.72, 1.46).addScaledVector(direita, 0.74),
+    aposta: humano ? V3(-0.78, 0, 0.82) : ponto(1.9, 0.95),    // a do humano fica ao lado, para as cartas em pé não a esconderem
+    botao: humano ? V3(-1.2, 0, 1.12) : ponto(2.55, 1.36).addScaledVector(direita, -0.58),
+    revelar: ponto(2.7, 0.95),
+    giro: Math.atan2(c, s),                      // giro das cartas para ficarem viradas para o jogador
+  };
+}
+function criarJogador(indice, dados, grau) {
+  const geo = geometriaAssento(grau, !!dados.humano);
+  // Em 1ª pessoa o humano não tem corpo visível: a câmera fica no lugar da cabeça dele.
+  const avatar = dados.humano ? new THREE.Group() : criarAvatar({ roupa: dados.roupa, pele: dados.pele, cabelo: dados.cabelo, estilo: dados.estilo, sentado: true });
+  avatar.position.copy(geo.avatar);
+  avatar.lookAt(0, 0, 0);
+  cena.add(avatar);
+  const grupoPilha = new THREE.Group(); grupoPilha.position.copy(geo.pilha); grupoPilha.rotation.y = geo.giro; cena.add(grupoPilha);
+  const grupoAposta = new THREE.Group(); grupoAposta.position.copy(geo.aposta); cena.add(grupoAposta);
+  const rotulo = document.createElement('div'); rotulo.className = 'rotulo'; $('rotulos').appendChild(rotulo);
+  const j = {
+    indice, nome: dados.nome, humano: !!dados.humano, personalidade: dados.personalidade || null,
+    fichas: CONFIG.fichasIniciais, aposta: 0, total: 0, cartas: [], malhas: [],
+    desistiu: false, allIn: false, eliminado: false, agiu: false, aumentos: 0, revelado: false, ultimaAcao: '',
+    geo, avatar, grupoPilha, grupoAposta, rotulo, ancora: geo.avatar.clone().setY(1.5),
+  };
+  montarPilha(grupoPilha, j.fichas, true);
+  return j;
+}
+const vivos = () => jogo.jogadores.filter(j => !j.eliminado);
+const naMao = () => jogo.jogadores.filter(j => !j.eliminado && !j.desistiu);
+const podemAgir = () => jogo.jogadores.filter(j => !j.eliminado && !j.desistiu && !j.allIn);
+const poteVisivel = () => jogo.pote + jogo.jogadores.reduce((s, j) => s + j.aposta, 0);
+function proximo(indice, filtro) {
+  const n = jogo.jogadores.length;
+  for (let k = 1; k <= n; k++) { const j = jogo.jogadores[(indice + k) % n]; if (filtro(j)) return j.indice; }
+  return -1;
+}
+const proximoVivo = i => proximo(i, j => !j.eliminado);
+
+/* =====================================================================
+   12. HUD: rótulos, balão do juiz, pote, histórico
+   ===================================================================== */
+const rotulosFixos = [];                         // { el, pos } projetados a cada quadro
+let balaoAte = 0;
+function atualizarRotulo(j) {
+  const r = j.rotulo;
+  if (j.eliminado) {
+    r.className = 'rotulo eliminado';
+    r.innerHTML = `<div class="nome">${escapar(j.nome)}</div><div class="fichas">Eliminado</div>`;
+    return;
+  }
+  let marcas = '';
+  if (j.indice === jogo.botao) marcas += '<span class="marca">D</span>';
+  if (j.indice === jogo.sbIdx) marcas += '<span class="marca blind">SB</span>';
+  if (j.indice === jogo.bbIdx) marcas += '<span class="marca blind">BB</span>';
+  const perfil = j.personalidade ? `<div class="perfil">${PERSONALIDADES[j.personalidade].rotulo}</div>` : '';
+  r.className = 'rotulo' + (jogo.vez === j ? ' vez' : '') + (j.desistiu ? ' fora' : '') + (j.humano ? ' oculto' : '');
+  if (j.humano) $('minha-posicao').innerHTML = marcas;
+  r.innerHTML = `<div class="nome">${escapar(j.nome)}${marcas}</div>${perfil}<div class="fichas">${fmt(j.fichas)}</div>` +
+    (j.ultimaAcao ? `<div class="acao">${escapar(j.ultimaAcao)}</div>` : '');
+}
+function atualizarTodosRotulos() { jogo.jogadores.forEach(atualizarRotulo); }
+const _proj = new THREE.Vector3();
+function projetar(el, pos, margem = 0, preso = false) {
+  _proj.copy(pos).project(camera);
+  if (_proj.z > 1) { el.style.visibility = 'hidden'; return; }
+  let x = (_proj.x * 0.5 + 0.5) * innerWidth;
+  let y = (-_proj.y * 0.5 + 0.5) * innerHeight;
+  if (margem) { x = limitar(x, margem, innerWidth - margem); y = Math.max(y, el.offsetHeight + 14); }
+  if (preso) { const m = el.offsetWidth / 2 + 4; x = limitar(x, m, innerWidth - m); y = Math.max(y, el.offsetHeight + 4); }   // rótulos não saem da tela
+  el.style.visibility = '';
+  el.style.transform = `translate(-50%, -100%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)` + (el.id === 'balao' && !el.classList.contains('visivel') ? ' scale(.6)' : '');
+}
+function atualizarProjecoes(agora) {
+  for (const j of jogo.jogadores) if (!j.humano || j.eliminado) projetar(j.rotulo, j.ancora, 0, true);
+  for (const r of rotulosFixos) projetar(r.el, r.pos);
+  const balao = $('balao');
+  if (balaoAte && agora > balaoAte) { balao.classList.remove('visivel'); balaoAte = 0; }
+  projetar(balao, ANCORA_BALAO, Math.min(150, innerWidth * 0.38));
+  if (!$('pote3d').classList.contains('oculto')) projetar($('pote3d'), ANCORA_POTE);
+}
+const ANCORA_BALAO = V3(0, 2.02, -(MESA.b + 0.78)), ANCORA_POTE = V3(0, 0.34, 0.44);
+
+// O juiz fala num balão. O texto também pode ir para o histórico.
+function falar(texto, duracao = 2600) {
+  const b = $('balao');
+  b.textContent = texto; b.classList.add('visivel');
+  balaoAte = performance.now() + duracao;
+}
+const historico = [];
+function registrar(texto, destaque) {
+  historico.push({ texto, destaque });
+  if (historico.length > 40) historico.shift();
+  $('lista-historico').innerHTML = historico.slice(-9).map(h => `<li${h.destaque ? ' class="destaque"' : ''}>${escapar(h.texto)}</li>`).join('');
+}
+function anunciar(texto, destaque) { falar(texto); registrar(texto, destaque); }
+
+function atualizarHUD() {
+  const total = poteVisivel();
+  $('valor-pote').textContent = fmt(total);
+  $('pote3d').innerHTML = `<small>Pote</small> ${fmt(total)}`;
+  $('pote3d').classList.toggle('oculto', total <= 0);
+  $('info-mao').innerHTML = `Mão ${jogo.numeroMao}<small>Blinds ${fmt(jogo.sb)}/${fmt(jogo.bb)}</small>`;
+  const par = $('hud-paralelos');
+  if (jogo.potesInfo.length > 1) {
+    par.textContent = jogo.potesInfo.map((p, i) => (i === 0 ? 'Principal ' : 'Paralelo ') + fmt(p.valor)).join(' · ');
+    par.classList.remove('oculto');
+  } else par.classList.add('oculto');
+  const h = jogo.jogadores[0];
+  if (h) { $('minhas-fichas').textContent = fmt(h.fichas) + ' fichas'; }
+}
+const miniaturas = {};                           // id da carta -> elementos 2D que a mostram
+function criarMiniatura(c) {
+  const d = document.createElement('div'); d.className = 'carta-mini';
+  if (c) {
+    d.classList.add('cheia');
+    const img = document.createElement('img'); img.src = imagemCarta(c); img.alt = NOME_VALOR[c.v] + ' de ' + NAIPES[c.n];
+    d.appendChild(img);
+    (miniaturas[c.id] = miniaturas[c.id] || []).push(d);
+  }
+  return d;
+}
+function atualizarMesaHUD() {
+  const el = $('hud-mesa'); el.innerHTML = '';
+  for (let i = 0; i < 5; i++) el.appendChild(criarMiniatura(jogo.mesa[i]));
+}
+function atualizarMinhaMao() {
+  const h = jogo.jogadores[0], el = $('minhas-cartas');
+  el.innerHTML = '';
+  for (let i = 0; i < 2; i++) el.appendChild(criarMiniatura(h && h.cartas[i]));
+  let texto = '';
+  if (h && h.cartas.length === 2) {
+    if (h.desistiu) texto = 'Você desistiu desta mão';
+    else if (jogo.mesa.length >= 3) texto = melhorMao(h.cartas.concat(jogo.mesa)).nome;
+    else texto = h.cartas[0].v === h.cartas[1].v ? 'Par na mão' : 'Carta Alta';
+  }
+  $('minha-jogada').textContent = texto;
+  el.classList.toggle('apagada', !!(h && h.desistiu));
+  el.style.opacity = h && h.desistiu ? 0.4 : 1;
+}
+function marcarVez(j) {
+  jogo.vez = j;
+  atualizarTodosRotulos();
+  anelVez.visible = !!j;
+  if (j) { anelVez.position.set(j.geo.cartas.x, 0.006, j.geo.cartas.z); dealerOlhar(j.geo.avatar); }
+  else dealerOlhar(null);
+  olharPara(j);
+}
+
+/* =====================================================================
+   13. INTELIGÊNCIA DOS BOTS
+   ===================================================================== */
+function podeAumentarAgora(j) {
+  const pagar = jogo.apostaAtual - j.aposta;
+  // Só pode aumentar quem ainda não agiu desde o último aumento completo, tem fichas além de pagar
+  // e tem alguém com fichas para responder.
+  return !j.agiu && j.fichas > pagar && podemAgir().some(o => o !== j);
+}
+function decidirBot(j) {
+  const p = PERSONALIDADES[j.personalidade || 'equilibrado'];
+  const pagar = Math.max(0, jogo.apostaAtual - j.aposta);
+  const pote = poteVisivel();
+  const oponentes = naMao().length - 1;
+  const maxTotal = j.aposta + j.fichas;
+  const minTotal = Math.min(maxTotal, jogo.apostaAtual + jogo.aumentoMinimo);
+  const forca = limitar(estimarForca(j.cartas, jogo.mesa) + aleatorio(-0.03, 0.03), 0, 1);
+  // Contra vários oponentes a chance real de vencer é menor do que contra um só.
+  const forcaReal = Math.pow(forca, 1 + 0.35 * Math.max(0, oponentes - 1));
+  const compromisso = j.fichas > 0 ? pagar / j.fichas : 1;
+  const limite = j.personalidade === 'agressivo' ? 3 : 2;
+  const aindaAumenta = podeAumentarAgora(j) && (j.aumentos < limite || forca > 0.93);
+  const aumentar = alvo => {
+    alvo = Math.max(minTotal, arred5(alvo));
+    return alvo >= maxTotal * 0.85 ? { tipo: 'allin' } : { tipo: 'raise', total: alvo };
+  };
+
+  if (jogo.mesa.length === 0) {                  // ----- pré-flop -----
+    const bb = jogo.bb, custo = pagar / bb;
+    if (forca >= p.aumentoPre && aindaAumenta && Math.random() < p.agress) {
+      return aumentar(jogo.apostaAtual <= bb ? bb * (2 + Math.ceil(Math.random() * 2)) : jogo.apostaAtual * aleatorio(2.3, 3));
+    }
+    if (pagar === 0) return { tipo: 'check' };
+    // Aumentos pequenos se pagam com mãos jogáveis; aumentos grandes exigem mão forte.
+    const exigido = Math.min(p.entrada + 0.035 * Math.max(0, custo - 1), 0.66) + (compromisso > 0.4 ? 0.05 + p.margem : 0);
+    if (forca >= exigido) return { tipo: 'call' };
+    if (aindaAumenta && custo <= 1 && Math.random() < p.blefe * 0.6) return aumentar(bb * 3);   // roubo de blinds
+    return { tipo: 'fold' };
+  }
+  if (pagar === 0) {                             // ----- pós-flop, ninguém apostou -----
+    if (forcaReal >= p.apostar && aindaAumenta && Math.random() < p.agress) return aumentar(pote * p.tamanho * aleatorio(0.8, 1.2));
+    if (aindaAumenta && oponentes <= 2 && Math.random() < p.blefe) return aumentar(pote * aleatorio(0.5, 0.9));   // blefe
+    return { tipo: 'check' };
+  }
+  // ----- pós-flop, há aposta para pagar -----
+  const odds = pagar / (pote + pagar);
+  if (forcaReal >= p.reaumentar && aindaAumenta && Math.random() < p.agress) return aumentar(jogo.apostaAtual + (pote + pagar) * p.tamanho);
+  const exigido = odds + 0.12 + p.margem + (compromisso > 0.6 ? 0.14 : compromisso > 0.3 ? 0.07 : 0);
+  if (forcaReal >= exigido) return { tipo: 'call' };
+  if (aindaAumenta && compromisso < 0.2 && Math.random() < p.blefe * 0.4) return aumentar(jogo.apostaAtual * 2.5 + pote * 0.3);   // blefe
+  return { tipo: 'fold' };
+}
+
+/* =====================================================================
+   14. AÇÕES DO JOGADOR HUMANO (botões, slider, teclado)
+   ===================================================================== */
+let resolverAcao = null, contextoAcao = null;
+function definirStatus(t) { $('status').textContent = t; }
+function habilitarBarra(ligar) {
+  $('barra').classList.toggle('espera', !ligar);
+  for (const b of $('barra').querySelectorAll('button, input')) b.disabled = !ligar;
+}
+function atualizarValorAumento() {
+  const c = contextoAcao; if (!c) return;
+  const v = Number($('slider').value);
+  $('valor-aumento').textContent = fmt(v);
+  const tudo = v >= c.maxTotal;
+  $('txt-raise').textContent = tudo ? 'All-in' : (jogo.apostaAtual === 0 ? 'Apostar' : 'Aumentar');
+  $('sub-raise').textContent = tudo ? fmt(c.maxTotal) : (jogo.apostaAtual === 0 ? fmt(v) : 'para ' + fmt(v));
+}
+function pedirAcaoHumano(j) {
+  const pagar = Math.max(0, jogo.apostaAtual - j.aposta);
+  const maxTotal = j.aposta + j.fichas;
+  const podeAumentar = podeAumentarAgora(j);
+  const minTotal = Math.min(maxTotal, jogo.apostaAtual + jogo.aumentoMinimo);
+  contextoAcao = { j, pagar, maxTotal, minTotal, podeAumentar };
+  habilitarBarra(true);
+  definirStatus('Sua vez!');
+  $('btn-fold').disabled = pagar === 0;
+  $('txt-call').textContent = pagar === 0 ? 'Passar' : 'Pagar';
+  $('sub-call').textContent = pagar === 0 ? 'Check' : (pagar >= j.fichas ? fmt(j.fichas) + ' (all-in)' : fmt(pagar));
+  $('sub-allin').textContent = fmt(j.fichas);
+  $('btn-allin').disabled = !(podeAumentar || j.fichas <= pagar);
+  const s = $('slider');
+  s.min = minTotal; s.max = maxTotal; s.step = 5; s.value = minTotal;
+  for (const b of $('barra').querySelectorAll('#atalhos button, #linha-slider button, #slider, #btn-raise')) b.disabled = !podeAumentar;
+  if (podeAumentar && maxTotal <= minTotal) { s.disabled = true; }
+  atualizarValorAumento();
+  if (!podeAumentar) { $('txt-raise').textContent = 'Aumentar'; $('sub-raise').textContent = 'Raise'; $('valor-aumento').textContent = '–'; }
+  return new Promise(r => { resolverAcao = r; });
+}
+function responderAcao(acao) {
+  if (!resolverAcao) return;
+  const r = resolverAcao; resolverAcao = null; contextoAcao = null;
+  habilitarBarra(false); definirStatus('');
+  // Volta os botões para o texto neutro enquanto os outros jogam.
+  $('txt-call').textContent = 'Passar'; $('sub-call').textContent = 'Check';
+  $('txt-raise').textContent = 'Aumentar'; $('sub-raise').textContent = 'Raise';
+  $('sub-allin').textContent = fmt(jogo.jogadores[0].fichas); $('valor-aumento').textContent = '–';
+  r(acao);
+}
+function ajustarSlider(v) {
+  const c = contextoAcao; if (!c || !c.podeAumentar) return;
+  $('slider').value = limitar(arred5(v), c.minTotal, c.maxTotal);
+  if (v >= c.maxTotal) $('slider').value = c.maxTotal;
+  atualizarValorAumento();
+}
+function ligarBarra() {
+  $('btn-fold').onclick = () => responderAcao({ tipo: 'fold' });
+  $('btn-call').onclick = () => contextoAcao && responderAcao({ tipo: contextoAcao.pagar === 0 ? 'check' : 'call' });
+  $('btn-allin').onclick = () => responderAcao({ tipo: 'allin' });
+  $('btn-raise').onclick = () => {
+    const c = contextoAcao; if (!c) return;
+    const v = Number($('slider').value);
+    responderAcao(v >= c.maxTotal ? { tipo: 'allin' } : { tipo: 'raise', total: v });
+  };
+  $('slider').oninput = atualizarValorAumento;
+  $('btn-menos').onclick = () => ajustarSlider(Number($('slider').value) - Math.max(5, jogo.bb / 2));
+  $('btn-mais').onclick = () => ajustarSlider(Number($('slider').value) + Math.max(5, jogo.bb / 2));
+  for (const b of document.querySelectorAll('#atalhos button')) {
+    b.onclick = () => {
+      const c = contextoAcao; if (!c) return;
+      const base = poteVisivel() + c.pagar;
+      const v = { min: c.minTotal, meio: jogo.apostaAtual + base / 2, pote: jogo.apostaAtual + base, max: c.maxTotal }[b.dataset.atalho];
+      ajustarSlider(v);
+    };
+  }
+  // Atalhos de teclado: D desiste, espaço/C passa ou paga, A aumenta, T vai all-in.
+  addEventListener('keydown', e => {
+    if (!resolverAcao || e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+    const k = e.key.toLowerCase();
+    if (k === 'd' && !$('btn-fold').disabled) $('btn-fold').click();
+    else if (k === 'c' || k === ' ') { e.preventDefault(); $('btn-call').click(); }
+    else if (k === 'a' && !$('btn-raise').disabled) $('btn-raise').click();
+    else if (k === 't' && !$('btn-allin').disabled) $('btn-allin').click();
+  });
+  habilitarBarra(false);
+}
+
+/* =====================================================================
+   15. MOTOR DO JOGO (Texas Hold'em)
+   ===================================================================== */
+// Tira fichas do jogador e coloca na aposta da rodada, com as fichas voando até a frente dele.
+async function colocarFichas(j, valor) {
+  valor = Math.min(valor, j.fichas);
+  if (valor <= 0) return;
+  j.fichas -= valor; j.aposta += valor; j.total += valor;
+  if (j.fichas === 0) j.allIn = true;
+  montarPilha(j.grupoPilha, j.fichas, true);
+  atualizarRotulo(j); atualizarHUD();
+  await voarFichas(j.geo.pilha, j.geo.aposta, valor);
+  montarPilha(j.grupoAposta, j.aposta, false);
+}
+// Onde fica cada carta fechada de um jogador.
+function posCartaJogador(j, i) {
+  const lado = i - 0.5;
+  if (j.humano) return { pos: j.geo.cartas.clone().add(V3(lado * 0.4, Math.sin(INCLINACAO_HUMANO) * CARTA.a / 2 + 0.012, 0)), giro: 0 };
+  return { pos: j.geo.cartas.clone().addScaledVector(j.geo.direita, lado * 0.2).setY(CARTA.e / 2 + 0.002 + i * 0.008), giro: j.geo.giro + lado * 0.16 };
+}
+async function distribuirCarta(j, i, c) {
+  const m = criarCarta3D(c);
+  m.position.copy(POS.baralho).setY(0.11); m.rotation.set(0, 0, Math.PI);
+  j.malhas.push(m);
+  Som.carta();
+  gestoMao('D', V3().lerpVectors(POS.baralho, j.geo.cartas, 0.35).setY(0.3), 130, 200);
+  const alvo = posCartaJogador(j, i);
+  if (j.humano) {
+    const plano = alvo.pos.clone().setY(CARTA.e);
+    await mover(m, plano, 430, { arco: 0.5, rot: { y: Math.PI * 2 } });
+    m.rotation.y = 0;
+    mover(m, alvo.pos, 300, { rot: { z: 0, x: INCLINACAO_HUMANO } });   // vira e fica em pé, de frente para o jogador
+    atualizarMinhaMao();
+  } else {
+    await mover(m, alvo.pos, 430, { arco: 0.5, rot: { y: alvo.giro + Math.PI * 2 } });
+    m.rotation.y = alvo.giro;
+  }
+}
+// Cartas de quem desistiu voltam fechadas para o monte de descarte.
+async function descartarCartas(j) {
+  const malhas = j.malhas; j.malhas = [];
+  await Promise.all(malhas.map((m, i) => mover(m, POS.descarte.clone().setY(0.02 + i * 0.007), 380, { arco: 0.35, rot: { x: 0, y: 0.4, z: Math.PI } })));
+  malhas.forEach(removerCarta3D);
+}
+// Vira para cima as cartas dos bots que continuam na mão.
+async function revelarCartas() {
+  const movs = [];
+  for (const j of naMao()) {
+    if (j.revelado) continue;
+    j.revelado = true;
+    if (j.humano) continue;
+    j.malhas.forEach((m, i) => {
+      const alvo = j.geo.revelar.clone(); alvo.x += (i - 0.5) * 0.4; alvo.y = Math.sin(0.8) * CARTA.a / 2 + 0.01;
+      movs.push(mover(m, alvo, 500, { arco: 0.3, rot: { x: 0.8, y: 0, z: 0 } }));
+    });
+    Som.virar();
+    await esperar(200);
+  }
+  await Promise.all(movs);
+}
+// O juiz coloca cartas comunitárias fechadas no centro e depois vira uma a uma.
+async function abrirMesa(nome, qtd) {
+  anunciar(nome + '!', true);
+  const novas = [];
+  for (let k = 0; k < qtd; k++) {
+    const c = jogo.baralho.pop(), i = jogo.mesa.length;
+    jogo.mesa.push(c);
+    const m = criarCarta3D(c);
+    m.position.copy(POS.baralho).setY(0.11); m.rotation.set(0, 0, Math.PI);
+    jogo.malhasMesa.push(m); novas.push(m);
+    Som.carta();
+    gestoMao('D', POS.mesa(i), 130, 200);
+    mover(m, POS.mesa(i), 380, { arco: 0.35 });
+    await esperar(150);
+  }
+  await esperar(360);
+  for (const m of novas) {
+    Som.virar();
+    gestoMao('D', m.position, 120, 180);
+    await mover(m, m.position.clone().setY(Math.sin(INCLINACAO_MESA) * CARTA.a / 2 + 0.006), 300, { arco: 0.12, rot: { z: 0, x: INCLINACAO_MESA } });
+    atualizarMesaHUD(); atualizarMinhaMao();
+  }
+  await esperar(350);
+}
+// Fim da rodada de apostas: devolve aposta não coberta e leva tudo para o pote.
+async function recolherApostas() {
+  const ordenados = jogo.jogadores.slice().sort((a, b) => b.aposta - a.aposta);
+  const maior = ordenados[0], segundo = ordenados[1] ? ordenados[1].aposta : 0;
+  if (maior.aposta > segundo && !maior.desistiu) {
+    const dev = maior.aposta - segundo;
+    maior.aposta -= dev; maior.total -= dev; maior.fichas += dev; maior.allIn = false;
+    montarPilha(maior.grupoAposta, maior.aposta, false);
+    await voarFichas(maior.geo.aposta, maior.geo.pilha, dev, 0.25);
+    montarPilha(maior.grupoPilha, maior.fichas, true);
+    registrar(`${maior.nome} recebeu ${fmt(dev)} de volta (aposta não coberta).`);
+    atualizarRotulo(maior);
+  }
+  const apostas = jogo.jogadores.filter(j => j.aposta > 0);
+  if (apostas.length) {
+    gestoMao('E', V3(-0.5, 0.2, -0.9), 260, 380); gestoMao('D', V3(0.5, 0.2, -0.9), 260, 380);
+    await Promise.all(apostas.map(j => {
+      const v = j.aposta;
+      j.aposta = 0; jogo.pote += v;
+      montarPilha(j.grupoAposta, 0);
+      return voarFichas(j.geo.aposta, POS.pote, v, 0.2);
+    }));
+    montarPilha(grupoPote, jogo.pote, true);
+  }
+  jogo.apostaAtual = 0; jogo.aumentoMinimo = jogo.bb;
+  jogo.potesInfo = naMao().length > 1 ? calcularPotes() : [];
+  for (const j of jogo.jogadores) if (!j.desistiu && !j.allIn) j.ultimaAcao = '';
+  atualizarTodosRotulos(); atualizarHUD();
+}
+// Potes paralelos: cada nível de all-in forma um pote disputado só por quem o cobriu.
+function calcularPotes() {
+  const disputam = jogo.jogadores.filter(j => j.total > 0 && !j.desistiu && !j.eliminado);
+  const niveis = [...new Set(disputam.map(j => j.total))].sort((a, b) => a - b);
+  const potes = [];
+  let anterior = 0;
+  for (const n of niveis) {
+    let valor = 0;
+    for (const j of jogo.jogadores) valor += Math.max(0, Math.min(j.total, n) - anterior);
+    const elegiveis = disputam.filter(j => j.total >= n);
+    const ultimo = potes[potes.length - 1];
+    if (ultimo && ultimo.elegiveis.length === elegiveis.length) ultimo.valor += valor;   // mesmos jogadores: é o mesmo pote
+    else if (valor > 0) potes.push({ valor, elegiveis });
+    anterior = n;
+  }
+  // Fichas de quem desistiu acima do maior nível entram no último pote.
+  const soma = potes.reduce((s, p) => s + p.valor, 0), totalReal = jogo.jogadores.reduce((s, j) => s + j.total, 0);
+  if (potes.length && totalReal > soma) potes[potes.length - 1].valor += totalReal - soma;
+  return potes;
+}
+// Aplica uma ação (já validada) e anuncia.
+async function executarAcao(j, acao) {
+  const pagar = Math.max(0, jogo.apostaAtual - j.aposta);
+  let tipo = acao.tipo;
+  if (tipo === 'fold' && pagar === 0) tipo = 'check';
+  if (tipo === 'check' && pagar > 0) tipo = 'call';
+  if (tipo === 'raise' && !podeAumentarAgora(j)) tipo = pagar > 0 ? 'call' : 'check';
+  if (tipo === 'allin' && j.fichas <= pagar) tipo = 'call';
+  if (tipo === 'allin' && !podeAumentarAgora(j)) tipo = 'call';
+
+  if (tipo === 'fold') {
+    j.desistiu = true; j.ultimaAcao = 'Desistiu';
+    anunciar(`${j.nome} desistiu.`); Som.desistir();
+    if (j.humano) atualizarMinhaMao();
+    await descartarCartas(j);
+  } else if (tipo === 'check') {
+    j.ultimaAcao = 'Passou';
+    anunciar(`${j.nome} passou.`); Som.passar();
+    await esperar(350);
+  } else if (tipo === 'call') {
+    const v = Math.min(pagar, j.fichas), tudo = v === j.fichas;
+    j.ultimaAcao = tudo ? 'All-in' : 'Pagou ' + fmt(v);
+    anunciar(tudo ? `${j.nome} pagou ${fmt(v)} e está all-in!` : `${j.nome} pagou ${fmt(v)}.`, tudo);
+    await colocarFichas(j, v);
+  } else {
+    const maxTotal = j.aposta + j.fichas;
+    let total = tipo === 'allin' ? maxTotal : limitar(arred5(acao.total), Math.min(maxTotal, jogo.apostaAtual + jogo.aumentoMinimo), maxTotal);
+    const tudo = total === maxTotal, eraAposta = jogo.apostaAtual === 0, acrescimo = total - jogo.apostaAtual;
+    if (acrescimo >= jogo.aumentoMinimo) {
+      // Aumento completo: reabre a ação para todo mundo.
+      jogo.aumentoMinimo = acrescimo;
+      for (const o of jogo.jogadores) if (o !== j) o.agiu = false;
+    }
+    jogo.apostaAtual = total; j.aumentos++;
+    j.ultimaAcao = tudo ? 'All-in ' + fmt(total) : (eraAposta ? 'Apostou ' : 'Aumentou ') + fmt(total);
+    anunciar(tudo ? `${j.nome} foi all-in com ${fmt(total)}!` : eraAposta ? `${j.nome} apostou ${fmt(total)}.` : `${j.nome} aumentou para ${fmt(total)}!`, tudo);
+    await colocarFichas(j, total - j.aposta);
+  }
+  j.agiu = true;
+  atualizarRotulo(j); atualizarHUD();
+}
+function precisaAgir(j) {
+  if (j.eliminado || j.desistiu || j.allIn) return false;
+  if (j.aposta < jogo.apostaAtual) return true;
+  if (j.agiu) return false;
+  return podemAgir().length >= 2;                // sem ninguém para responder, não há o que decidir
+}
+async function rodadaDeApostas(inicio) {
+  for (const j of jogo.jogadores) { j.agiu = false; j.aumentos = 0; }
+  const n = jogo.jogadores.length;
+  let idx = inicio;
+  for (let guarda = 0; guarda < 300 && naMao().length > 1; guarda++) {
+    let achou = null;
+    for (let k = 0; k < n; k++) { const j = jogo.jogadores[(idx + k) % n]; if (precisaAgir(j)) { achou = j; break; } }
+    if (!achou) break;
+    marcarVez(achou);
+    let acao;
+    if (achou.humano && !MODO_AUTO) { Som.suaVez(); acao = await pedirAcaoHumano(achou); }
+    else {
+      if (!achou.humano) definirStatus(`Vez de ${achou.nome}…`);
+      await esperar(aleatorio(650, 1250));
+      acao = decidirBot(achou);
+    }
+    await executarAcao(achou, acao);
+    idx = (achou.indice + 1) % n;
+  }
+  marcarVez(null); definirStatus('');
+}
+// Liga ou desliga o brilho das cartas vencedoras (3D e miniaturas).
+function destacarCartas(cartas, ligar) {
+  const ids = new Set(cartas.map(c => c.id));
+  for (const id in malhaDaCarta) {
+    const m = malhaDaCarta[id], u = m.userData;
+    if (ligar && ids.has(id)) {
+      if (!brilhando.has(m)) { brilhando.add(m); u.brilho.visible = true; u.face.emissive.setHex(0xffc94d); m.position.y += 0.07; }
+      u.face.color.setScalar(1);
+    } else {
+      if (brilhando.has(m)) { brilhando.delete(m); u.brilho.visible = false; u.face.emissive.setHex(0); u.face.emissiveIntensity = 0; m.position.y -= 0.07; }
+      u.face.color.setScalar(ligar ? 0.42 : 1);
+    }
+  }
+  for (const id in miniaturas) for (const el of miniaturas[id]) {
+    el.classList.toggle('vencedora', ligar && ids.has(id));
+    el.classList.toggle('apagada', ligar && !ids.has(id));
+  }
+}
+// O juiz empurra fichas do pote para um vencedor.
+async function pagarPremio(j, valor) {
+  jogo.pote -= valor;
+  montarPilha(grupoPote, jogo.pote, true);
+  atualizarHUD();
+  gestoMao(j.geo.avatar.x < 0 ? 'E' : 'D', V3().lerpVectors(POS.pote, j.geo.pilha, 0.5).setY(0.2), 320, 420);
+  dealerOlhar(j.geo.avatar);
+  await voarFichas(POS.pote, j.geo.pilha, valor, 0.12);
+  j.fichas += valor;
+  montarPilha(j.grupoPilha, j.fichas, true);
+  atualizarRotulo(j); atualizarHUD();
+  // O vencedor comemora com um pulinho.
+  const y0 = j.avatar.position.y;
+  animar(520, k => { j.avatar.position.y = y0 + Math.abs(Math.sin(k * Math.PI * 2)) * 0.12; }, k => k).then(() => { j.avatar.position.y = y0; });
+}
+async function showdown() {
+  await revelarCartas();
+  anunciar('Showdown!', true);
+  await esperar(900);
+  for (const j of naMao()) j.mao = melhorMao(j.cartas.concat(jogo.mesa));
+  const potes = calcularPotes();
+  for (let i = potes.length - 1; i >= 0; i--) {    // potes paralelos primeiro, principal por último
+    const p = potes[i];
+    const melhor = Math.max(...p.elegiveis.map(j => j.mao.pontos));
+    const vencedores = p.elegiveis.filter(j => j.mao.pontos === melhor);
+    // Divide em múltiplos de 5; a sobra vai para o primeiro vencedor à esquerda do botão.
+    const parte = Math.floor(p.valor / vencedores.length / 5) * 5;
+    const sobra = p.valor - parte * vencedores.length;
+    const primeiro = jogo.jogadores[proximo(jogo.botao, j => vencedores.includes(j))];
+    const nomePote = potes.length > 1 ? (i === 0 ? ' o pote principal' : ' o pote paralelo') : '';
+    const mao = vencedores[0].mao;
+    destacarCartas(vencedores.flatMap(j => j.mao.cinco), true);
+    if (vencedores.length === 1) {
+      const v = vencedores[0];
+      anunciar(`${v.nome} venceu${nomePote} com ${MAOS_COM_ARTIGO[mao.categoria]}!`, true);
+      registrar(`${v.nome} levou ${fmt(p.valor)}.`);
+      v.humano ? Som.vitoria() : Som.ficha(3);
+    } else {
+      const nomes = vencedores.map(j => j.nome);
+      anunciar(`Empate! ${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]} dividem${nomePote || ' o pote'} com ${MAOS_COM_ARTIGO[mao.categoria]}.`, true);
+      Som.ficha(3);
+    }
+    await esperar(700);
+    await Promise.all(vencedores.map(j => pagarPremio(j, parte + (j === primeiro ? sobra : 0))));
+    await esperar(2300);
+    destacarCartas([], false);
+  }
+}
+async function vitoriaSemShowdown() {
+  const v = naMao()[0], valor = jogo.pote;
+  anunciar(`${v.nome} venceu o pote de ${fmt(valor)}!`, true);
+  v.humano ? Som.vitoria() : Som.ficha(3);
+  await esperar(500);
+  await pagarPremio(v, valor);
+  await esperar(1100);
+}
+// Recolhe as cartas e prepara a próxima mão.
+async function limparMesa() {
+  const todas = jogo.malhasMesa.concat(...jogo.jogadores.map(j => j.malhas));
+  await Promise.all(todas.map((m, i) => (async () => {
+    await esperar(i * 25);
+    await mover(m, POS.baralho.clone().setY(0.1), 300, { arco: 0.2, rot: { x: 0, y: 0, z: Math.PI } });
+    removerCarta3D(m);
+  })()));
+  jogo.malhasMesa = [];
+  for (const j of jogo.jogadores) { j.malhas = []; j.cartas = []; montarPilha(j.grupoAposta, 0); }
+  for (const id in miniaturas) delete miniaturas[id];
+  jogo.mesa = []; jogo.pote = 0; jogo.potesInfo = [];
+  montarPilha(grupoPote, 0);
+  atualizarMesaHUD(); atualizarMinhaMao(); atualizarHUD();
+}
+// Quem zerou as fichas sai da mesa.
+async function eliminarZerados() {
+  for (const j of jogo.jogadores) {
+    if (j.eliminado || j.fichas > 0) continue;
+    j.eliminado = true;
+    anunciar(`${j.nome} ficou sem fichas e está fora do jogo!`, true);
+    if (j.humano) Som.derrota();
+    atualizarRotulo(j);
+    const p0 = j.avatar.position.clone(), fora = p0.clone().multiplyScalar(1.6);
+    await animar(900, k => {
+      j.avatar.position.lerpVectors(p0, fora, k);
+      j.avatar.scale.setScalar(ESCALA_AVATAR * (1 - 0.96 * k));
+    });
+    cena.remove(j.avatar);
+    j.ancora.y = 0.75;
+    await esperar(500);
+  }
+}
+async function jogarMao() {
+  jogo.numeroMao++;
+  const nivel = Math.floor((jogo.numeroMao - 1) / CONFIG.maosPorNivel);
+  jogo.sb = CONFIG.smallBlind * Math.pow(2, nivel); jogo.bb = jogo.sb * 2;
+  for (const j of jogo.jogadores) {
+    Object.assign(j, { aposta: 0, total: 0, cartas: [], malhas: [], desistiu: false, allIn: false, agiu: false, aumentos: 0, revelado: false, ultimaAcao: '', mao: null });
+  }
+  jogo.mesa = []; jogo.pote = 0; jogo.potesInfo = [];
+  jogo.apostaAtual = 0; jogo.aumentoMinimo = jogo.bb;
+
+  // O botão de dealer anda uma posição; com dois jogadores, o botão é o small blind.
+  jogo.botao = proximoVivo(jogo.botao);
+  const doisJogadores = vivos().length === 2;
+  jogo.sbIdx = doisJogadores ? jogo.botao : proximoVivo(jogo.botao);
+  jogo.bbIdx = proximoVivo(jogo.sbIdx);
+  const sb = jogo.jogadores[jogo.sbIdx], bb = jogo.jogadores[jogo.bbIdx];
+  atualizarTodosRotulos(); atualizarHUD(); atualizarMesaHUD(); atualizarMinhaMao();
+  mover(fichaBotao, jogo.jogadores[jogo.botao].geo.botao.clone().setY(0.012), 500, { arco: 0.25 });
+  registrar(`— Mão ${jogo.numeroMao} —`, true);
+  if (nivel > jogo.nivel) {
+    jogo.nivel = nivel;
+    anunciar(`Os blinds subiram para ${fmt(jogo.sb)}/${fmt(jogo.bb)}!`, true);
+    await esperar(1500);
+  }
+
+  falar('Embaralhando…', 1800);
+  await animarEmbaralhar();
+  jogo.baralho = novoBaralho();
+
+  // Blinds obrigatórios.
+  sb.ultimaAcao = 'Small blind'; bb.ultimaAcao = 'Big blind';
+  registrar(`${sb.nome} pôs o small blind (${fmt(Math.min(jogo.sb, sb.fichas))}) e ${bb.nome} o big blind (${fmt(Math.min(jogo.bb, bb.fichas))}).`);
+  await Promise.all([colocarFichas(sb, jogo.sb), colocarFichas(bb, jogo.bb)]);
+  jogo.apostaAtual = jogo.bb;
+
+  // Duas cartas para cada um, uma por vez, começando à esquerda do botão.
+  falar('Distribuindo as cartas.', 1800);
+  const ordem = [];
+  for (let i = proximoVivo(jogo.botao), k = 0; k < vivos().length; k++, i = proximoVivo(i)) ordem.push(jogo.jogadores[i]);
+  const voos = [];
+  for (let r = 0; r < 2; r++) for (const j of ordem) {
+    const c = jogo.baralho.pop();
+    j.cartas.push(c);
+    voos.push(distribuirCarta(j, r, c));
+    await esperar(160);
+  }
+  await Promise.all(voos);
+  moverMao('D', dealer.maos.D.repouso, 250);
+  await esperar(350);
+
+  // Pré-flop, flop, turn e river.
+  const fases = [null, ['Flop', 3], ['Turn', 1], ['River', 1]];
+  let reveladas = false;
+  for (let f = 0; f < 4; f++) {
+    if (f > 0) await abrirMesa(fases[f][0], fases[f][1]);
+    await rodadaDeApostas(f === 0 ? proximoVivo(jogo.bbIdx) : proximoVivo(jogo.botao));
+    await recolherApostas();
+    if (naMao().length === 1) break;
+    // Se ninguém mais pode apostar, as cartas são abertas e a mesa é completada.
+    if (!reveladas && f < 3 && podemAgir().length <= 1) { reveladas = true; await revelarCartas(); await esperar(500); }
+  }
+  if (naMao().length === 1) await vitoriaSemShowdown(); else await showdown();
+  await limparMesa();
+  await eliminarZerados();
+}
+async function cicloDoJogo() {
+  while (jogo.ativo) {
+    await jogarMao();
+    const humano = jogo.jogadores[0];
+    if (humano.eliminado) return fimDeJogo(false);
+    if (vivos().length === 1) return fimDeJogo(true);
+    await esperar(600);
+  }
+}
+
+/* =====================================================================
+   16. TELAS: início, regras e fim de jogo
+   ===================================================================== */
+let botsEscolhidos = 3;
+function descreverBots() {
+  const nomes = BOTS.slice(0, botsEscolhidos).map(b => `${b.nome} (${PERSONALIDADES[b.personalidade].rotulo.toLowerCase()})`);
+  $('resumo-bots').textContent = 'Na mesa: ' + nomes.join(', ') + '. Todos começam com 1.000 em fichas.';
+}
+function iniciarJogo() {
+  Som.iniciar();
+  const nome = $('campo-nome').value.trim() || 'Jogador';
+  // Humano no assento 0; os bots seguem no sentido horário.
+  jogo.jogadores = [criarJogador(0, { nome, humano: true }, 90)];
+  const escolhidos = botsEscolhidos === 4 ? BOTS : BOTS.slice().sort(() => Math.random() - 0.5).slice(0, botsEscolhidos);
+  ANGULOS_BOTS[botsEscolhidos].forEach((grau, i) => jogo.jogadores.push(criarJogador(i + 1, escolhidos[i], grau)));
+  Object.assign(jogo, { numeroMao: 0, nivel: 0, pote: 0, mesa: [], potesInfo: [], ativo: true, sb: CONFIG.smallBlind, bb: CONFIG.smallBlind * 2, sbIdx: -1, bbIdx: -1 });
+  jogo.botao = Math.floor(Math.random() * jogo.jogadores.length);
+  historico.length = 0; $('lista-historico').innerHTML = '';
+  $('meu-nome').textContent = nome;
+  for (const id of ['topo', 'hud-centro', 'historico', 'barra']) $(id).classList.remove('oculto');
+  $('tela-inicial').classList.add('oculto');
+  fichaBotao.visible = true;
+  reiniciarCamera();
+  atualizarTodosRotulos(); atualizarHUD(); atualizarMesaHUD(); atualizarMinhaMao();
+  falar(`Bem-vindo à mesa, ${nome}!`, 2200);
+  cicloDoJogo();
+}
+function fimDeJogo(venceu) {
+  jogo.ativo = false;
+  const h = jogo.jogadores[0];
+  $('titulo-fim').textContent = venceu ? 'Você venceu!' : 'Game Over';
+  $('texto-fim').textContent = venceu
+    ? `${h.nome} eliminou todos os adversários em ${jogo.numeroMao} mãos e ficou com ${fmt(h.fichas)} em fichas.`
+    : `${h.nome} ficou sem fichas na mão ${jogo.numeroMao}.`;
+  if (venceu) Som.vitoria();
+  $('tela-fim').classList.remove('oculto');
+}
+// Remove tudo da mesa e volta para a tela inicial.
+function jogarDeNovo() {
+  for (const j of jogo.jogadores) {
+    cena.remove(j.avatar, j.grupoPilha, j.grupoAposta);
+    j.malhas.forEach(removerCarta3D);
+    j.rotulo.remove();
+  }
+  jogo.malhasMesa.forEach(removerCarta3D);
+  jogo.jogadores = []; jogo.malhasMesa = [];
+  montarPilha(grupoPote, 0);
+  fichaBotao.visible = false; anelVez.visible = false;
+  for (const id of ['topo', 'hud-centro', 'historico', 'barra', 'tela-fim']) $(id).classList.add('oculto');
+  $('pote3d').classList.add('oculto');
+  $('tela-inicial').classList.remove('oculto');
+}
+function montarPainelRegras() {
+  // [nome, descrição, cartas do exemplo (valor, naipe), quantas cartas formam a combinação]
+  const exemplos = [
+    ['Royal Flush', 'A, K, Q, J e 10 do mesmo naipe', [[14, 0], [13, 0], [12, 0], [11, 0], [10, 0]], 5],
+    ['Straight Flush', 'Cinco cartas em sequência do mesmo naipe', [[9, 1], [8, 1], [7, 1], [6, 1], [5, 1]], 5],
+    ['Quadra', 'Quatro cartas do mesmo valor', [[13, 0], [13, 1], [13, 2], [13, 3], [3, 0]], 4],
+    ['Full House', 'Uma trinca e um par', [[12, 0], [12, 1], [12, 2], [7, 3], [7, 0]], 5],
+    ['Flush', 'Cinco cartas do mesmo naipe, fora de sequência', [[14, 2], [11, 2], [8, 2], [6, 2], [2, 2]], 5],
+    ['Sequência', 'Cinco cartas em sequência, naipes diferentes', [[10, 0], [9, 2], [8, 1], [7, 3], [6, 0]], 5],
+    ['Trinca', 'Três cartas do mesmo valor', [[8, 0], [8, 1], [8, 2], [13, 3], [4, 0]], 3],
+    ['Dois Pares', 'Dois pares de valores diferentes', [[11, 0], [11, 2], [5, 1], [5, 3], [14, 0]], 4],
+    ['Um Par', 'Duas cartas do mesmo valor', [[14, 0], [14, 1], [9, 2], [6, 3], [3, 0]], 2],
+    ['Carta Alta', 'Nenhuma combinação: vale a carta mais alta', [[14, 0], [11, 2], [8, 1], [5, 3], [2, 0]], 1],
+  ];
+  $('ranking').innerHTML = exemplos.map((e, i) => {
+    const cartas = e[2].map((c, k) => `<div class="carta-mini cheia${k >= e[3] ? ' apagada' : ''}"><img src="${imagemCarta(carta(c[0], c[1]))}" alt="${NOME_VALOR[c[0]]} de ${NAIPES[c[1]]}"></div>`).join('');
+    return `<div class="linha-ranking"><span class="pos">${i + 1}</span><span class="txt"><b>${e[0]}</b><span>${e[1]}</span></span><span class="exemplo">${cartas}</span></div>`;
+  }).join('');
+  $('legenda-fichas').innerHTML = DENOMINACOES.slice().reverse().map(d => `<span><i style="background:${d.cor};border-color:${d.detalhe}"></i>${d.nome} = ${d.valor}</span>`).join('');
+}
+function ligarInterface() {
+  for (const b of document.querySelectorAll('#escolha-bots button')) {
+    b.onclick = () => {
+      botsEscolhidos = Number(b.dataset.bots);
+      for (const o of document.querySelectorAll('#escolha-bots button')) o.setAttribute('aria-pressed', String(o === b));
+      descreverBots();
+    };
+  }
+  descreverBots();
+  $('form-inicio').addEventListener('submit', e => { e.preventDefault(); iniciarJogo(); });
+  $('btn-regras').onclick = () => $('painel-regras').classList.remove('oculto');
+  $('btn-fechar-regras').onclick = () => $('painel-regras').classList.add('oculto');
+  $('painel-regras').addEventListener('click', e => { if (e.target === $('painel-regras')) $('painel-regras').classList.add('oculto'); });
+  $('btn-som').onclick = () => { Som.ativo = !Som.ativo; $('btn-som').setAttribute('aria-pressed', String(Som.ativo)); if (Som.ativo) Som.iniciar(); };
+  $('btn-vel').onclick = () => { velocidadeBase = velocidadeBase >= 3 ? 1 : velocidadeBase + 1; $('btn-vel').textContent = velocidadeBase + '×'; };
+  $('btn-vel').textContent = velocidadeBase + '×';
+  $('btn-cam').onclick = reiniciarCamera;
+  $('btn-de-novo').onclick = jogarDeNovo;
+  ligarBarra();
+  montarPainelRegras();
+}
+
+/* =====================================================================
+   17. MONTAGEM E LAÇO PRINCIPAL
+   ===================================================================== */
+function montarPecasDaMesa() {
+  prepararPecas();
+  // Botão de dealer (disco branco com a letra D).
+  const cv = novoCanvas(128, 128), x = cv.getContext('2d');
+  x.fillStyle = '#f7f3e6'; x.beginPath(); x.arc(64, 64, 64, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#16161c'; x.lineWidth = 6; x.beginPath(); x.arc(64, 64, 52, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#16161c'; x.font = '700 70px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('D', 64, 68);
+  const topo = new THREE.MeshStandardMaterial({ map: texturaDeCanvas(cv), roughness: 0.4 });
+  fichaBotao = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.024, 28), [mat(0xf7f3e6, 0.4), topo, topo]);
+  fichaBotao.castShadow = true; fichaBotao.visible = false; fichaBotao.position.set(0, 0.012, -1.2); cena.add(fichaBotao);
+  // Anel dourado que marca de quem é a vez.
+  anelVez = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.56, 56), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+  anelVez.rotation.x = -Math.PI / 2; anelVez.visible = false; cena.add(anelVez);
+  grupoPote = new THREE.Group(); grupoPote.position.copy(POS.pote); cena.add(grupoPote);
+}
+let ultimoQuadro = performance.now(), relogio = 0;
+function quadro(agora) {
+  requestAnimationFrame(quadro);
+  const dt = Math.min(0.05, (agora - ultimoQuadro) / 1000);
+  ultimoQuadro = agora; relogio += dt;
+  // Quando o humano já desistiu, o resto da mão anda mais rápido.
+  const h = jogo.jogadores[0];
+  const vel = velocidadeBase * (jogo.ativo && h && (h.desistiu || h.eliminado) ? 1.7 : 1);
+  atualizarInterpolacoes(dt * 1000 * vel);
+  atualizarDealer(relogio, dt);
+  const pulso = 0.55 + 0.45 * Math.sin(relogio * 7);
+  for (const m of brilhando) { m.userData.brilho.material.opacity = 0.55 + 0.45 * pulso; m.userData.face.emissiveIntensity = 0.1 + 0.22 * pulso; }
+  if (anelVez.visible) anelVez.material.opacity = 0.45 + 0.4 * pulso;
+  atualizarCamera(dt);
+  atualizarProjecoes(agora);
+  renderer.render(cena, camera);
+}
+
+montarAmbiente();
+montarPecasDaMesa();
+criarDealer();
+const rotuloJuiz = document.createElement('div');
+rotuloJuiz.className = 'rotulo juiz'; rotuloJuiz.textContent = 'Juiz';
+$('rotulos').insertBefore(rotuloJuiz, $('rotulos').firstChild);
+rotulosFixos.push({ el: rotuloJuiz, pos: V3(0, 1.72, -(MESA.b + 0.78)) });
+ligarControlesCamera();
+ligarInterface();
+ajustarTela(); reiniciarCamera();
+// A barra de ações muda de altura: o histórico do celular fica logo acima dela e a visão se recentra.
+if (window.ResizeObserver) {
+  new ResizeObserver(() => {
+    document.documentElement.style.setProperty('--altura-barra', $('barra').offsetHeight + 'px');
+    const padrao = visao.pitch === visao.pitchPadrao; ajustarTela(); if (padrao) visao.pitch = visao.pitchPadrao;
+  }).observe($('barra'));
+}
+addEventListener('resize', () => { const padrao = visao.pitch === visao.pitchPadrao; ajustarTela(); if (padrao) visao.pitch = visao.pitchPadrao; });
+// As cartas usam a fonte da página: quando ela termina de carregar, as cartas são redesenhadas.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
+    for (const id in CANVAS_CARTAS) { delete CANVAS_CARTAS[id]; delete IMAGENS_CARTAS[id]; }
+    montarPainelRegras();
+  });
+}
+requestAnimationFrame(quadro);
+
+// Acesso para depuração pelo console.
+window.__poker = { jogo, Som, melhorMao, estimarForca, calcularPotes, carta };
+if (PARAMS.has('bots')) { botsEscolhidos = limitar(Number(PARAMS.get('bots')) || 3, 1, 4); iniciarJogo(); }
+})();
+</script>
+</body>
+</html>
